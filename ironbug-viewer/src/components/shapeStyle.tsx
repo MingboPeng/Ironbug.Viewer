@@ -53,26 +53,20 @@ class MyShapeUtil extends BaseBoxShapeUtil<IMyShape> {
 
 	getDefaultProps(): IMyShape['props'] {
 		return {
-			w: 300,
-			h: 300,
+			w: 50,
+			h: 50,
 			rating: 4, // [4]
 			url: ''
 		}
 	}
 
 	component(shape: IMyShape) {
-		// [5]
-		const stars = ['☆', '☆', '☆', '☆', '☆']
-		for (let i = 0; i < shape.props.rating; i++) {
-			stars[i] = '★'
-		}
 
 		return (
 			<HTMLContainer
 				id={shape.id}
 				style={{ backgroundColor: 'var(--color-low-border)', overflow: 'hidden' }}
 			>
-				{stars}
 				<img
 					src={shape.props.url}
 					alt="Custom image"
@@ -127,53 +121,55 @@ function CustomStylePanel() {
 	)
 }
 
+function GenShapes() {
+
+	const items = [{
+		id: createShapeId('geo1'),
+		url: { reactLogo }.reactLogo
+	}, {
+		id: createShapeId('geo2'),
+		url: 'https://raw.githubusercontent.com/BuildingPerformanceSimulation/openstudio-measures/refs/heads/master/lib/measures/detailed_hvac_viewer/resources/images/Coil_Heating_Water_Baseboard_Radiant.png'
+	}]
+
+	let count = 0;
+	const space = 80;
+	const size = 100;
+
+
+	var shapes = items.map(_ => {
+
+		const obj =
+		{
+			id: _.id,
+			type: 'myshape',
+			x: count * (space + size),
+			y: size,
+			props: {
+				w: size,
+				h: size,
+				url: _.url
+			}
+		};
+		count++;
+		return obj;
+	});
+
+	return shapes;
+
+
+}
+
 
 function OnMountLoading2(editor: Editor) {
 
-	const rightAngle1 = createShapeId('geo1');
-	const rightAngle2 = createShapeId('geo2');
+
+	// const rightAngle1 = createShapeId('geo1');
+	// const rightAngle2 = createShapeId('geo2');
 	const arrowId = createShapeId('arrow1');
-	// editor.createShapes([
-	// 	{
-	// 		id: rightAngle1,
-	// 		type: "geo",
-	// 		x: 100,
-	// 		y: 100,
-	// 		props: {
-	// 			geo: "ellipse", // Defines the shape as a circle/ellipse
-	// 			w: 50, // Width
-	// 			h: 50, // Height
+	const shapes = GenShapes();
 
-	// 		}
-	// 	},
-	// 	{
-	// 		id: rightAngle2,
-	// 		type: "geo",
-	// 		props: {
-	// 			geo: "ellipse",
-	// 			w: 50,
-	// 			h: 50,
-	// 		},
-	// 		x: 300,
-	// 		y: 100,
-	// 	},
-	// ]);
 
-	editor.createShapes([
-		{
-			id: rightAngle1,
-			type: 'myshape',
-			x: 100,
-			y: 100,
-			props: { url: { reactLogo }.reactLogo }
-		},
-		{
-			id: rightAngle2,
-			type: 'myshape',
-			x: 450,
-			y: 250,
-			props: { rating: 5, url: 'https://raw.githubusercontent.com/BuildingPerformanceSimulation/openstudio-measures/refs/heads/master/lib/measures/detailed_hvac_viewer/resources/images/Coil_Heating_Water_Baseboard_Radiant.png' }
-		}])
+	editor.createShapes(shapes);
 
 	// Create an arrow connecting the circles
 	editor.createShapes<TLArrowShape>([
@@ -205,17 +201,19 @@ function OnMountLoading2(editor: Editor) {
 	// 	}
 	// )
 
+	bindin
+
 	editor.createBindings([
 		{
 			fromId: arrowId, // The arrow
-			toId: rightAngle1, // The shape being connected (start point)
+			toId: shapes[0].id, // The shape being connected (start point)
 			props: {
 				terminal: 'start'
 			}, type: "arrow"
 		},
 		{
 			fromId: arrowId, // The arrow
-			toId: rightAngle2, // The shape being connected (end point)
+			toId: shapes[1].id, // The shape being connected (end point)
 			props: {
 				terminal: 'end'
 			}, type: "arrow"
