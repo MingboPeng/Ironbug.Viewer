@@ -15,12 +15,16 @@ import {
 	TLArrowShape,
 	// TLArrowShape,
 	TLArrowBinding,
-	// TLDrawShape
+	// TLDrawShape,
+	TLEventMap,
+	useValue,
+	useReactor
 } from 'tldraw'
 import 'tldraw/tldraw.css'
 
 import reactLogo from './../assets/HVAC/Coil_Heating_Water_Baseboard_Radiant.png'
 import IB_Sys07 from './../assets/HVAC/Sys07_VAV Reheat.json'
+import { useState } from 'react'
 
 // [1]
 const myRatingStyle = StyleProp.defineEnum('example:rating', {
@@ -38,6 +42,8 @@ type IMyShape = TLBaseShape<
 		h: number
 		rating: MyRatingStyle
 		url: string
+		ostype: string
+
 	}
 >
 
@@ -49,7 +55,8 @@ class MyShapeUtil extends BaseBoxShapeUtil<IMyShape> {
 		w: T.number,
 		h: T.number,
 		rating: myRatingStyle,
-		url: T.string
+		url: T.string,
+		ostype: T.string
 	}
 
 	getDefaultProps(): IMyShape['props'] {
@@ -57,7 +64,8 @@ class MyShapeUtil extends BaseBoxShapeUtil<IMyShape> {
 			w: 50,
 			h: 50,
 			rating: 4, // [4]
-			url: ''
+			url: '',
+			ostype: ''
 		}
 	}
 
@@ -91,31 +99,51 @@ class MyShapeUtil extends BaseBoxShapeUtil<IMyShape> {
 function CustomStylePanel() {
 	const editor = useEditor()
 	const styles = useRelevantStyles()
+	const [selectedShape, setSelectedShape] = useState<IMyShape | null>(null);
+
+	useReactor(
+		'change title',
+		() => {
+			const shape = editor.getSelectedShapes().find(shape => shape.type === 'myshape') as IMyShape;
+			setSelectedShape(shape || null);
+
+			if (shape !== null && shape !== undefined) {
+				console.log("selection changed!" + shape.props.ostype);
+			} else {
+				console.log("selection null");
+			}
+		},
+		[editor]
+	)
+
+	// const info = useValue(
+	// 	'',
+	// 	() => {
+	// 		const shape = editor.getSelectedShapes().find(shape => shape.type === 'myshape') as IMyShape | undefined;
+	// 		setSelectedShape(shape || null);
+	// 		console.log("selection changed");
+
+	// 	},
+	// 	[editor]
+	// )
+
+
 	if (!styles) return null
 
-	const rating = styles.get(myRatingStyle)
+	// const rating = styles.get(myRatingStyle)
+	// const selectedShape = editor.getSelectedShapes().find(shape => shape.type === 'myshape') as IMyShape;
 
 	return (
 		<DefaultStylePanel>
 			<DefaultStylePanelContent styles={styles} />
-			{rating !== undefined && (
+			{selectedShape && (
 				<div>
-					<select
-						style={{ width: '100%', padding: 4 }}
-						value={rating.type === 'mixed' ? '' : rating.value}
-						onChange={(e) => {
-							editor.markHistoryStoppingPoint()
-							const value = myRatingStyle.validate(+e.currentTarget.value)
-							editor.setStyleForSelectedShapes(myRatingStyle, value)
-						}}
-					>
-						{rating.type === 'mixed' ? <option value="">Mixed</option> : null}
-						<option value={1}>1</option>
-						<option value={2}>2</option>
-						<option value={3}>3</option>
-						<option value={4}>4</option>
-						<option value={5}>5</option>
-					</select>
+					<label>OpenStudio Type:</label>
+					<input
+						type="text"
+						value={selectedShape.props.ostype}
+						onChange={(e) => { editor.updateShape({ ...selectedShape, props: { ...selectedShape.props, ostype: e.target.value, } }); }}
+					/>
 				</div>
 			)}
 		</DefaultStylePanel>
@@ -197,7 +225,9 @@ function GenShapes() {
 			props: {
 				w: size,
 				h: size,
-				url: { reactLogo }.reactLogo
+				url: { reactLogo }.reactLogo,
+				ostype: _.$type
+
 			}
 		};
 		count++;
