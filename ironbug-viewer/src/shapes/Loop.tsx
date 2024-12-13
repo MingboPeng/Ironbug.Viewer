@@ -1,7 +1,8 @@
-import { createShapeId, Editor, TLArrowShape } from 'tldraw';
+import { ArrowShapeArrowheadStartStyle, createShapeId, Editor, TLArrowShape, TLArrowShapeArrowheadStyle, TLLineShape, TLShapeId } from 'tldraw';
 import reactLogo from './../assets/HVAC/Coil_Heating_Water_Baseboard_Radiant.png'
 import IB_Sys07 from './../assets/HVAC/Sys07_VAV Reheat.json'
 import { GetImage } from './OsImages';
+import { IBShape } from './LoopObjShape';
 
 
 
@@ -115,10 +116,181 @@ function GenShape(obj: any, size: number, x: number, y: number) {
     return shape;
 }
 
+const SPACEX = 80;
+
+function DrawBranchConnections(editor: Editor, preArrows: TLShapeId[], aftArrows: TLShapeId[]) {
+    // const shapeId = shape.id;
+    const firstPre = editor.getShape(preArrows[0]) as TLArrowShape;
+    const lastPre = editor.getShape(preArrows[preArrows.length - 1]) as TLArrowShape;
+    const firstAft = editor.getShape(aftArrows[0]) as TLArrowShape;
+    // const length = SPACEX;
+    const baseX = firstPre?.x ?? 0;
+    const baseY = firstPre?.y ?? 0;
+    const h = (lastPre?.y ?? 0) - (firstPre?.y ?? 0);
+    const w = (firstAft?.x ?? 0) - (firstPre?.x ?? 0) + (SPACEX);
+
+
+    // --o
+    const linePre = {
+        type: 'line',
+        x: baseX,
+        y: baseY,
+        props: {
+            spline: "line",
+            points: {
+                a1: {
+                    id: 'a1',
+                    index: 'a1',
+                    x: 0,
+                    y: 0,
+                },
+                a2: {
+                    id: 'a2',
+                    index: 'a2',
+                    x: 0,
+                    y: h,
+                }
+            }
+        }
+
+    }
+    editor.createShape(linePre);
+
+    // o--
+    const lineAfter = {
+        type: 'line',
+        x: baseX + w,
+        y: baseY,
+        props: {
+            spline: "line",
+            points: {
+                a1: {
+                    id: 'a1',
+                    index: 'a1',
+                    x: 0,
+                    y: 0,
+                },
+                a2: {
+                    id: 'a2',
+                    index: 'a2',
+                    x: 0,
+                    y: h,
+                }
+            }
+        }
+
+    }
+    editor.createShape(lineAfter);
+
+}
+
+function DrawBranchAfterConnection(editor: Editor, shape: any) {
+    const shapeId = shape.id;
+    const length = SPACEX;
+
+    // o--
+    const arrowAfter: any = {
+        id: createShapeId('arrow_aft' + shapeId),
+        type: "arrow",
+        x: shape.x + shape.props.w,
+        y: shape.y + shape.props.h / 2,
+        props: {
+            start: { x: 0, y: 0, },
+            end: { x: length, y: 0, },
+            arrowheadStart: 'dot',
+            arrowheadEnd: 'none',
+
+        }
+    }
+    editor.createShape(arrowAfter);
+
+
+    const bindingStart = {
+        fromId: arrowAfter.id, // The arrow
+        toId: shapeId, // The shape being connected (start point)
+        props: {
+            terminal: 'start'
+        }, type: "arrow"
+    }
+    editor.createBinding(bindingStart);
+
+}
+function DrawPreConnection(editor: Editor, shape: any): TLShapeId {
+    const shapeId = shape.id;
+    const length = SPACEX;
+    // --o
+    const arrowPre: any = {
+        id: createShapeId('arrow_pre' + shapeId),
+        type: "arrow",
+        x: shape.x - length,
+        y: shape.y + shape.props.h / 2,
+        props: {
+            start: { x: 0, y: 0, },
+            end: { x: length, y: 0, },
+            arrowheadStart: 'none',
+            arrowheadEnd: 'dot',
+        }
+    }
+    editor.createShape(arrowPre);
+
+    const bindingEnd = {
+        fromId: arrowPre.id, // The arrow
+        toId: shapeId, // The shape being connected (end point)
+        props: {
+            terminal: 'end'
+        }, type: "arrow"
+    }
+    editor.createBinding(bindingEnd);
+
+    return arrowPre.id;
+}
+
+function DrawAfterConnection(editor: Editor, shape: any): TLShapeId {
+    const shapeId = shape.id;
+    const length = SPACEX;
+
+    // o--
+    const arrowAfter: any = {
+        id: createShapeId('arrow_aft' + shapeId),
+        type: "arrow",
+        x: shape.x + shape.props.w,
+        y: shape.y + shape.props.h / 2,
+        props: {
+            start: { x: 0, y: 0, },
+            end: { x: length, y: 0, },
+            arrowheadStart: 'dot',
+            arrowheadEnd: 'none',
+
+        }
+    }
+    editor.createShape(arrowAfter);
+
+
+    const bindingStart = {
+        fromId: arrowAfter.id, // The arrow
+        toId: shapeId, // The shape being connected (start point)
+        props: {
+            terminal: 'start'
+        }, type: "arrow"
+    }
+    editor.createBinding(bindingStart);
+
+    return arrowAfter.id;
+}
 
 function DrawConnections(editor: Editor, shapes: any[]) {
+
     if (shapes.length === 0) return;
 
+    // --o
+    const firstShape = shapes[0];
+    const preId = DrawPreConnection(editor, firstShape);
+    // o--
+    const lastShape = shapes[shapes.length - 1];
+    const afterId = DrawAfterConnection(editor, lastShape);
+
+
+    // draw connection between
     const arrows: TLArrowShape[] = [];
     const arrowBindings = [];
 
@@ -129,7 +301,7 @@ function DrawConnections(editor: Editor, shapes: any[]) {
         const shape = shapes[i];
         const shapeId = shape.id;
 
-        const arrowId = createShapeId('arrow' + i);
+        const arrowId = createShapeId('arrow' + shapeId);
         const arrow: any = {
             id: arrowId,
             type: "arrow",
@@ -138,6 +310,8 @@ function DrawConnections(editor: Editor, shapes: any[]) {
             props: {
                 start: { x: 1, y: 1, },
                 end: { x: 2, y: 2, },
+                arrowheadStart: 'dot',
+                arrowheadEnd: 'dot'
             }
         }
 
@@ -166,6 +340,11 @@ function DrawConnections(editor: Editor, shapes: any[]) {
     editor.createShapes(shapes);
     editor.createShapes<TLArrowShape>(arrows);
     editor.createBindings(arrowBindings);
+
+    return {
+        preArrowId: preId,
+        aftArrowId: afterId
+    }
 }
 
 export function DrawSupplyLoop(editor: Editor) {
@@ -215,12 +394,21 @@ export function DrawDemandLoop(editor: Editor) {
 
         if (ibType === "AirLoopBranches") {
             const branches: any[][] = obj.Branches;
+            const preArrowIds: TLShapeId[] = [];
+            const aftArrowIds: TLShapeId[] = [];
             for (let i = 0; i < branches.length; i++) {
                 const branchItems = branches[i];
                 const shapes = branchItems.map(_ => GenShape(_, size, x, y + i * (spaceY + size)));
                 editor.createShapes(shapes);
-                DrawConnections(editor, shapes);
+                const preAftIds = DrawConnections(editor, shapes);
+                if (preAftIds !== undefined) {
+                    preArrowIds.push(preAftIds.preArrowId);
+                    aftArrowIds.push(preAftIds.aftArrowId);
+                }
             }
+            DrawBranchConnections(editor, preArrowIds, aftArrowIds);
+
+
         } else {
             const shape = GenShape(_, size, x, y);
             editor.createShape(shape);
