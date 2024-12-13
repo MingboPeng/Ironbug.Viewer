@@ -73,6 +73,9 @@ function GetHvacType(obj: any) {
 
 function GenShape(obj: any, size: number, x: number, y: number) {
 
+    let w = size;
+    let h = size;
+
     let trackingId = GetTrackingId(obj);
     // Ironbug.HVAC.IB_OutdoorAirSystem, Ironbug.HVAC
     const ibType = GetHvacType(obj);
@@ -87,6 +90,12 @@ function GenShape(obj: any, size: number, x: number, y: number) {
     }
 
 
+
+    if (ibType === "OutdoorAirSystem") {
+        w = w * 2;
+    }
+
+
     const imageUrl = GetImage(ibType);
     const shape =
     {
@@ -95,8 +104,8 @@ function GenShape(obj: any, size: number, x: number, y: number) {
         x: x,
         y: y,
         props: {
-            w: size,
-            h: size,
+            w: w,
+            h: h,
             url: imageUrl,
             ostype: ibType
 
@@ -165,16 +174,17 @@ export function DrawSupplyLoop(editor: Editor) {
     const airloop = sys.AirLoops[0];
     const supplyComs = airloop.SupplyComponents;
 
-    let count = 0;
     const space = 80;
     const size = 100;
 
+    let baseX = 0;
+    let baseY = size;
 
     var shapes = supplyComs.map(_ => {
-        const x = count * (space + size);
-        const y = size;
+        const x = baseX;
+        const y = baseY;
         const shape = GenShape(_, size, x, y);
-        count++;
+        baseX = x + shape.props.w + space;
         return shape;
     });
     editor.createShapes(shapes);
