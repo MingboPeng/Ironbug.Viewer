@@ -7,6 +7,7 @@ export type IBShape = TLBaseShape<
         h: number
         url: string
         ostype: string
+        name: string
 
     }
 >
@@ -18,7 +19,8 @@ export class IBShapeUtil extends BaseBoxShapeUtil<IBShape> {
         w: T.number,
         h: T.number,
         url: T.string,
-        ostype: T.string
+        ostype: T.string,
+        name: T.string
     }
 
     getDefaultProps(): IBShape['props'] {
@@ -27,6 +29,7 @@ export class IBShapeUtil extends BaseBoxShapeUtil<IBShape> {
             h: 50,
             url: '',
             ostype: '',
+            name: ''
         }
     }
 

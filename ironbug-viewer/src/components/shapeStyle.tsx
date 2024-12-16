@@ -5,7 +5,10 @@ import {
 	Tldraw,
 	useEditor,
 	useRelevantStyles,
-	useReactor
+	useReactor,
+	TLArrowBindingProps,
+	TLShapeId,
+	createShapeId
 } from 'tldraw'
 import 'tldraw/tldraw.css'
 
@@ -21,11 +24,14 @@ function CustomStylePanel() {
 	const styles = useRelevantStyles()
 	const [selectedShape, setSelectedShape] = useState<IBShape | null>(null);
 
+	let selectedId: TLShapeId = createShapeId('');
+
 	useReactor(
 		'change selection',
 		() => {
 			const shape = editor.getSelectedShapes().find(shape => shape.type === 'ibshape') as IBShape;
 			setSelectedShape(shape || null);
+
 			// if (shape !== null && shape !== undefined) {
 			// 	console.log("selection changed!" + shape.props.ostype);
 			// } else {
@@ -48,6 +54,16 @@ function CustomStylePanel() {
 						type="text"
 						value={selectedShape.props.ostype}
 						onChange={(e) => { editor.updateShape({ ...selectedShape, props: { ...selectedShape.props, ostype: e.target.value, } }); }}
+					/>
+				</div>
+			)}
+			{selectedShape?.props.name && (
+				<div>
+					<label>Name:</label>
+					<input
+						type="text"
+						value={selectedShape.props.name}
+						onChange={(e) => { editor.updateShape({ ...selectedShape, props: { ...selectedShape.props, name: e.target.value, } }); }}
 					/>
 				</div>
 			)}
