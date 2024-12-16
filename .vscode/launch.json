@@ -1,0 +1,12 @@
+{
+    "configurations": [
+        {
+            "type": "msedge",
+            "name": "Launch Edge against localhost",
+            "request": "launch",
+            "url": "http://localhost:5173/",
+            "webRoot": "${workspaceFolder}/ironbug-viewer/",
+            "sourceMaps": true,
+        }
+    ]
+}
