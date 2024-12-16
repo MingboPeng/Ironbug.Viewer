@@ -16,7 +16,8 @@ import 'tldraw/tldraw.css'
 import { useState } from 'react'
 import { IBShape, IBShapeUtil } from "./../shapes/LoopObjShape";
 import IB_Sys07 from './../assets/HVAC/Sys07_VAV Reheat.json'
-import { DrawDemandLoop, DrawSupplyLoop } from '../shapes/Loop';
+import { DrawDemandLoop, DrawLoop, DrawSupplyLoop } from '../shapes/Loop';
+import { IBLoopShapeUtil } from '../shapes/LoopShape';
 
 // [6]
 function CustomStylePanel() {
@@ -75,15 +76,14 @@ function CustomStylePanel() {
 
 function OnMountLoading(editor: Editor) {
 	console.log(IB_Sys07);
-	DrawSupplyLoop(editor);
-	DrawDemandLoop(editor);
+	DrawLoop(editor);
 }
 
 export default function ShapeWithTldrawStylesExample() {
 	return (
 		<div style={{ position: 'fixed', inset: 0 }}>
 			<Tldraw
-				shapeUtils={[IBShapeUtil]}
+				shapeUtils={[IBShapeUtil, IBLoopShapeUtil]}
 				components={{
 					StylePanel: CustomStylePanel,
 				}}

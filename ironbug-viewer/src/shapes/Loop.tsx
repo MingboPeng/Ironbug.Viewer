@@ -6,8 +6,6 @@ import { IBShape } from './LoopObjShape';
 
 
 
-
-
 // Create a function to load the JSON file
 const loadJsonFile = async (path: string) => {
     try {
@@ -90,16 +88,6 @@ function GenShape(obj: any, size: number, x: number, y: number) {
     const ibType = GetHvacType(obj);
     const name = GetName(obj);
 
-    // if (ibType === "AirLoopBranches") {
-    //     const branches: any[][] = obj.Branches;
-    //     for (let i = 0; i < branches.length; i++) {
-    //         const branchItems = branches[i];
-    //         const shapes = branchItems.map(_ => GenShape(_, size, x, y + i * size));
-
-    //     }
-    // }
-
-
 
     if (ibType === "OutdoorAirSystem") {
         w = w * 2;
@@ -127,6 +115,8 @@ function GenShape(obj: any, size: number, x: number, y: number) {
 }
 
 const SPACEX = 80;
+const SPACEY = 40;
+const OBJSIZE = 100;
 
 function DrawBranchConnections({ editor, preArrows, aftArrows }: { editor: Editor; preArrows: TLArrowShape[]; aftArrows: TLArrowShape[]; }): TLArrowShape[] {
     // const shapeId = shape.id;
@@ -277,7 +267,7 @@ function DrawBranchConnections({ editor, preArrows, aftArrows }: { editor: Edito
     } as TLArrowBinding;
     editor.createBinding<TLArrowBinding>(aftBinding);
 
-    return [firstArrow, lastArrow];
+    return [lastArrow, firstArrow]; //[right, left], follow the flow direction
 }
 
 function DrawPreConnection(editor: Editor, shape: any): TLArrowShape {
@@ -407,14 +397,14 @@ function DrawConnections({ editor, shapes }: { editor: Editor; shapes: any[]; })
     return arrows;
 }
 
-export function DrawSupplyLoop(editor: Editor) {
+export function DrawSupplyLoop(editor: Editor): TLArrowShape[] {
 
     const sys = IB_Sys07;
     const airloop = sys.AirLoops[0];
     const supplyComs = airloop.SupplyComponents;
 
-    const space = 80;
-    const size = 100;
+    const space = SPACEX;
+    const size = OBJSIZE;
 
     let baseX = 0;
     let baseY = size;
@@ -428,29 +418,24 @@ export function DrawSupplyLoop(editor: Editor) {
     });
     editor.createShapes(shapes);
     const arrows = DrawConnections({ editor, shapes });
+    return arrows;
 
 }
 
-export function DrawDemandLoop(editor: Editor) {
+export function DrawDemandLoop(editor: Editor): TLArrowShape[] {
 
     const sys = IB_Sys07;
     const airloop = sys.AirLoops[0];
     const demandComs = airloop.DemandComponents;
 
     let count = 0;
-    const space = 80;
-    const spaceY = 40;
-    const size = 100;
+    const space = SPACEX;
+    const spaceY = SPACEY;
+    const size = OBJSIZE;
     const baseX = 300;
-    const baseY = 300;
-    const ll = demandComs.length
-    console.log('demandComponent: ' + ll);
+    const baseY = 500;
 
-    demandComs.forEach(_ => {
-        console.log(_);
-
-    })
-
+    let firstLastArrows: TLArrowShape[] = [];
 
     demandComs.forEach(_ => {
         const x = baseX - count * (space + size);
@@ -465,35 +450,183 @@ export function DrawDemandLoop(editor: Editor) {
             const lastArrows: TLArrowShape[] = [];
             for (let i = 0; i < branches.length; i++) {
                 const branchItems = branches[i];
-                const shapes = branchItems.map(_ => GenShape(_, size, x, y + i * (spaceY + size)));
+                const shapes = branchItems.flatMap(_ => {
+                    const itemShapes = [];
+                    const itemX = x;
+                    const itemY = y + i * (spaceY + size);
+                    const shape = GenShape(_, size, itemX, itemY);
+                    itemShapes.push(shape);
+
+                    const itemType = GetHvacType(_);
+                    if (itemType === "ThermalZone") {
+                        const aT = _.AirTerminal;
+                        if (aT !== undefined) {
+                            const aTx = itemX + size + space;
+                            const airTerminalShape = GenShape(_.AirTerminal ?? {}, size, aTx, itemY);
+                            itemShapes.push(airTerminalShape);
+                        }
+                    }
+
+                    return itemShapes;
+
+                });
+
                 editor.createShapes(shapes);
                 const arrows = DrawConnections({ editor, shapes });
                 firstArrows.push(arrows[0]);
                 lastArrows.push(arrows[arrows.length - 1]);
             }
-            DrawBranchConnections({ editor, preArrows: firstArrows, aftArrows: lastArrows });
-
+            const arrows = DrawBranchConnections({ editor, preArrows: firstArrows, aftArrows: lastArrows });
+            firstLastArrows = arrows;
 
         } else {
-            const shape = GenShape(_, size, x, y);
-            editor.createShape(shape);
+            // const shape = GenShape(_, size, x, y);
+            // editor.createShape(shape);
 
         }
 
         count++;
     });
 
+    return firstLastArrows;
 
 
-    // editor.createBinding<TLArrowBinding>(
-    // 	{
-    // 		fromId: arrowId, // The arrow
-    // 		toId: rightAngle1, // The shape being connected (start point)
-    // 		props: {
-    // 			terminal: 'start'
-    // 		}, type: "arrow"
-    // 	}
-    // )
+}
 
+
+
+export function DrawLoop(editor: Editor) {
+    const spArrs = DrawSupplyLoop(editor);
+    const dmArrs = DrawDemandLoop(editor);
+    const spLeft = spArrs[0];
+    const spRight = spArrs[spArrs.length - 1];
+    const dmRight = dmArrs[0];
+    const dmLeft = dmArrs[dmArrs.length - 1];
+
+    const w = spRight.x + spRight.props.end.x - spLeft.x;
+
+    const separatorY = OBJSIZE + SPACEY;
+    const separatorShape = {
+        type: 'IBLoopShape',
+        x: spLeft.x,
+        y: spLeft.y + separatorY,
+        props: {
+            w: w,
+            h: OBJSIZE,
+        },
+    }
+
+    editor.createShape(separatorShape);
+
+
+    const arrowSpLeft = {
+        id: createShapeId('arrow_sL' + spLeft.id),
+        type: "arrow",
+        x: spLeft.x,
+        y: spLeft.y,
+        props: {
+            start: { x: 0, y: 0, },
+            end: { x: 0, y: separatorShape.y - spLeft.y + OBJSIZE / 2, },
+            arrowheadStart: 'none',
+            arrowheadEnd: 'none',
+        }
+    } as TLArrowShape;
+
+    const arrowSpRight = {
+        id: createShapeId('arrow_sR' + spRight.id),
+        type: "arrow",
+        x: spLeft.x + w,
+        y: spLeft.y,
+        props: {
+            start: { x: 0, y: 0, },
+            end: { x: 0, y: separatorShape.y - spRight.y + OBJSIZE / 2, },
+            arrowheadStart: 'none',
+        }
+    } as TLArrowShape;
+
+    editor.createShape(arrowSpLeft);
+    editor.createShape(arrowSpRight);
+
+    const arrowDmRight = {
+        id: createShapeId('arrow_dL' + dmRight.id),
+        type: "arrow",
+        x: arrowSpRight.x,
+        y: arrowSpRight.y + arrowSpRight.props.end.y,
+        props: {
+            start: { x: 0, y: 0, },
+            end: { x: 0, y: dmRight.y - separatorShape.y - OBJSIZE / 2, },
+            arrowheadStart: 'none',
+            arrowheadEnd: 'none',
+        }
+    } as TLArrowShape;
+
+    const arrowDmLeft = {
+        id: createShapeId('arrow_dR' + dmLeft.id),
+        type: "arrow",
+        x: spLeft.x,
+        y: dmRight.y,
+        props: {
+            start: { x: 0, y: 0, },
+            end: { x: 0, y: -(dmLeft.y - separatorShape.y - OBJSIZE / 2), },
+            arrowheadStart: 'none',
+        }
+    } as TLArrowShape;
+
+    editor.createShape(arrowDmLeft);
+    editor.createShape(arrowDmRight);
+
+    // demand arrow-lines
+    // --|
+    const dmLineLeft = {
+        id: createShapeId('dmL' + dmLeft.id),
+        type: 'line',
+        x: dmLeft.x,
+        y: dmLeft.y,
+        props: {
+            spline: "line",
+            points: {
+                a1: {
+                    id: 'a1',
+                    index: 'a1',
+                    x: 0,
+                    y: 0,
+                },
+                a2: {
+                    id: 'a2',
+                    index: 'a2',
+                    x: -(dmLeft.x - spLeft.x),
+                    y: 0,
+                }
+            }
+        }
+
+    }
+    editor.createShape(dmLineLeft);
+
+    const dmLineRight = {
+        id: createShapeId('dmR' + dmRight.id),
+        type: 'line',
+        x: arrowDmRight.x,
+        y: dmRight.y,
+        props: {
+            spline: "line",
+            points: {
+                a1: {
+                    id: 'a1',
+                    index: 'a1',
+                    x: 0,
+                    y: 0,
+                },
+                a2: {
+                    id: 'a2',
+                    index: 'a2',
+                    x: dmRight.x + dmRight.props.end.x - arrowDmRight.x,
+                    y: 0,
+                }
+            }
+        }
+
+    }
+    editor.createShape(dmLineRight);
 
 }
