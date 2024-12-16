@@ -1,4 +1,4 @@
-import { ArrowShapeArrowheadStartStyle, createShapeId, Editor, TLArrowShape, TLArrowShapeArrowheadStyle, TLLineShape, TLShapeId } from 'tldraw';
+import { ArrowShapeArrowheadStartStyle, createShapeId, Editor, TLArrowBinding, TLArrowBindingProps, TLArrowShape, TLArrowShapeArrowheadStyle, TLArrowShapeProps, TLBaseBinding, TLLineShape, TLShapeId } from 'tldraw';
 import reactLogo from './../assets/HVAC/Coil_Heating_Water_Baseboard_Radiant.png'
 import IB_Sys07 from './../assets/HVAC/Sys07_VAV Reheat.json'
 import { GetImage } from './OsImages';
@@ -55,6 +55,14 @@ function GetTrackingId(obj: any) {
 
 }
 
+function GetName(obj: any): string {
+    //TrackingID:#[535f96e2]
+    const attributes: any[] = obj.CustomAttributes;
+    const value: string | null = attributes.find(o => o.Field.FullName == 'Name')?.Value as string;
+    return value ?? '';
+
+}
+
 
 function GetHvacType(obj: any) {
 
@@ -77,18 +85,19 @@ function GenShape(obj: any, size: number, x: number, y: number) {
     let w = size;
     let h = size;
 
-    let trackingId = GetTrackingId(obj);
+    const trackingId = GetTrackingId(obj);
     // Ironbug.HVAC.IB_OutdoorAirSystem, Ironbug.HVAC
     const ibType = GetHvacType(obj);
+    const name = GetName(obj);
 
-    if (ibType === "AirLoopBranches") {
-        const branches: any[][] = obj.Branches;
-        for (let i = 0; i < branches.length; i++) {
-            const branchItems = branches[i];
-            const shapes = branchItems.map(_ => GenShape(_, size, x, y + i * size));
+    // if (ibType === "AirLoopBranches") {
+    //     const branches: any[][] = obj.Branches;
+    //     for (let i = 0; i < branches.length; i++) {
+    //         const branchItems = branches[i];
+    //         const shapes = branchItems.map(_ => GenShape(_, size, x, y + i * size));
 
-        }
-    }
+    //     }
+    // }
 
 
 
@@ -108,7 +117,8 @@ function GenShape(obj: any, size: number, x: number, y: number) {
             w: w,
             h: h,
             url: imageUrl,
-            ostype: ibType
+            ostype: ibType,
+            name: name
 
         }
     };
@@ -118,11 +128,11 @@ function GenShape(obj: any, size: number, x: number, y: number) {
 
 const SPACEX = 80;
 
-function DrawBranchConnections(editor: Editor, preArrows: TLShapeId[], aftArrows: TLShapeId[]) {
+function DrawBranchConnections({ editor, preArrows, aftArrows }: { editor: Editor; preArrows: TLArrowShape[]; aftArrows: TLArrowShape[]; }): TLArrowShape[] {
     // const shapeId = shape.id;
-    const firstPre = editor.getShape(preArrows[0]) as TLArrowShape;
-    const lastPre = editor.getShape(preArrows[preArrows.length - 1]) as TLArrowShape;
-    const firstAft = editor.getShape(aftArrows[0]) as TLArrowShape;
+    const firstPre = preArrows[0];
+    const lastPre = preArrows[preArrows.length - 1];
+    const firstAft = aftArrows[0];
     // const length = SPACEX;
     const baseX = firstPre?.x ?? 0;
     const baseY = firstPre?.y ?? 0;
@@ -130,8 +140,9 @@ function DrawBranchConnections(editor: Editor, preArrows: TLShapeId[], aftArrows
     const w = (firstAft?.x ?? 0) - (firstPre?.x ?? 0) + (SPACEX);
 
 
-    // --o
+    // --|
     const linePre = {
+        id: createShapeId('branch_s' + firstPre.id),
         type: 'line',
         x: baseX,
         y: baseY,
@@ -155,9 +166,28 @@ function DrawBranchConnections(editor: Editor, preArrows: TLShapeId[], aftArrows
 
     }
     editor.createShape(linePre);
+    // bind all arrows to the line
+    preArrows.forEach(_ => {
+        const anchorPtX = 0;
+        const anchorPtY = (_.y - baseY) / h; // relative ratio based on the y
+
+        const binding = {
+            fromId: _.id, // The arrow
+            toId: linePre.id, // The shape being connected (end point)
+            props: {
+                terminal: 'start',
+                normalizedAnchor: { x: anchorPtX, y: anchorPtY },
+                isExact: false,
+                isPrecise: true
+
+            }, type: "arrow"
+        } as TLArrowBinding;
+        editor.createBinding<TLArrowBinding>(binding);
+    })
 
     // o--
     const lineAfter = {
+        id: createShapeId('branch_e' + firstAft.id),
         type: 'line',
         x: baseX + w,
         y: baseY,
@@ -181,45 +211,80 @@ function DrawBranchConnections(editor: Editor, preArrows: TLShapeId[], aftArrows
 
     }
     editor.createShape(lineAfter);
+    // bind all arrows to the line
+    aftArrows.forEach(_ => {
+        const anchorPtX = 0;
+        const anchorPtY = (_.y - baseY) / h; // relative ratio based on the y
 
-}
+        const binding = {
+            fromId: _.id, // The arrow
+            toId: lineAfter.id, // The shape being connected (end point)
+            props: {
+                terminal: 'end',
+                normalizedAnchor: { x: anchorPtX, y: anchorPtY },
+                isExact: false,
+                isPrecise: true
 
-function DrawBranchAfterConnection(editor: Editor, shape: any) {
-    const shapeId = shape.id;
-    const length = SPACEX;
+            }, type: "arrow"
+        } as TLArrowBinding;
+        editor.createBinding<TLArrowBinding>(binding);
+    })
 
-    // o--
-    const arrowAfter: any = {
-        id: createShapeId('arrow_aft' + shapeId),
+    const arrowLength = SPACEX / 2;
+    // draw arrow before -|
+    const firstArrow = {
+        id: createShapeId('arrow_s' + linePre.id),
         type: "arrow",
-        x: shape.x + shape.props.w,
-        y: shape.y + shape.props.h / 2,
+        x: linePre.x - arrowLength,
+        y: linePre.y + h / 2,
         props: {
             start: { x: 0, y: 0, },
-            end: { x: length, y: 0, },
-            arrowheadStart: 'dot',
+            end: { x: arrowLength, y: 0, },
+            arrowheadStart: 'none',
             arrowheadEnd: 'none',
-
         }
-    }
-    editor.createShape(arrowAfter);
+    } as TLArrowShape;
+    editor.createShape(firstArrow);
+    const preBinding = {
+        fromId: firstArrow.id, // The arrow
+        toId: linePre.id, // The shape being connected (end point)
+        props: {
+            terminal: 'end'
+        }, type: "arrow"
+    } as TLArrowBinding;
+    editor.createBinding<TLArrowBinding>(preBinding);
 
-
-    const bindingStart = {
-        fromId: arrowAfter.id, // The arrow
-        toId: shapeId, // The shape being connected (start point)
+    // draw arrow after |-
+    const lastArrow = {
+        id: createShapeId('arrow_e' + lineAfter.id),
+        type: "arrow",
+        x: lineAfter.x,
+        y: lineAfter.y + h / 2,
+        props: {
+            start: { x: 0, y: 0, },
+            end: { x: arrowLength, y: 0, },
+            arrowheadStart: 'none',
+            arrowheadEnd: 'none',
+        }
+    } as TLArrowShape;
+    editor.createShape(lastArrow);
+    const aftBinding = {
+        fromId: lastArrow.id, // The arrow
+        toId: lineAfter.id, // The shape being connected (end point)
         props: {
             terminal: 'start'
         }, type: "arrow"
-    }
-    editor.createBinding(bindingStart);
+    } as TLArrowBinding;
+    editor.createBinding<TLArrowBinding>(aftBinding);
 
+    return [firstArrow, lastArrow];
 }
-function DrawPreConnection(editor: Editor, shape: any): TLShapeId {
+
+function DrawPreConnection(editor: Editor, shape: any): TLArrowShape {
     const shapeId = shape.id;
     const length = SPACEX;
     // --o
-    const arrowPre: any = {
+    const arrowPre = {
         id: createShapeId('arrow_pre' + shapeId),
         type: "arrow",
         x: shape.x - length,
@@ -230,7 +295,8 @@ function DrawPreConnection(editor: Editor, shape: any): TLShapeId {
             arrowheadStart: 'none',
             arrowheadEnd: 'dot',
         }
-    }
+    } as TLArrowShape;
+
     editor.createShape(arrowPre);
 
     const bindingEnd = {
@@ -242,15 +308,15 @@ function DrawPreConnection(editor: Editor, shape: any): TLShapeId {
     }
     editor.createBinding(bindingEnd);
 
-    return arrowPre.id;
+    return arrowPre;
 }
 
-function DrawAfterConnection(editor: Editor, shape: any): TLShapeId {
+function DrawAfterConnection(editor: Editor, shape: any): TLArrowShape {
     const shapeId = shape.id;
     const length = SPACEX;
 
     // o--
-    const arrowAfter: any = {
+    const arrowAfter = {
         id: createShapeId('arrow_aft' + shapeId),
         type: "arrow",
         x: shape.x + shape.props.w,
@@ -262,7 +328,7 @@ function DrawAfterConnection(editor: Editor, shape: any): TLShapeId {
             arrowheadEnd: 'none',
 
         }
-    }
+    } as TLArrowShape;
     editor.createShape(arrowAfter);
 
 
@@ -275,26 +341,25 @@ function DrawAfterConnection(editor: Editor, shape: any): TLShapeId {
     }
     editor.createBinding(bindingStart);
 
-    return arrowAfter.id;
+    return arrowAfter;
 }
 
-function DrawConnections(editor: Editor, shapes: any[]) {
+// draw connections in between shapes and before/after the first/last shape
+function DrawConnections({ editor, shapes }: { editor: Editor; shapes: any[]; }): TLArrowShape[] {
 
-    if (shapes.length === 0) return;
+    if (shapes.length === 0) return [];
 
-    // --o
+    // --o arrow before the first shape
     const firstShape = shapes[0];
-    const preId = DrawPreConnection(editor, firstShape);
-    // o--
+    const firstArrow = DrawPreConnection(editor, firstShape);
+    // o-- arrow after the last shape
     const lastShape = shapes[shapes.length - 1];
-    const afterId = DrawAfterConnection(editor, lastShape);
+    const lastArrow = DrawAfterConnection(editor, lastShape);
 
 
-    // draw connection between
+    // draw connection in between
     const arrows: TLArrowShape[] = [];
-    const arrowBindings = [];
-
-
+    arrows.push(firstArrow);
     for (let i = 1; i < shapes.length; i++) {
         const shapePre = shapes[i - 1];
         const shapePreId = shapePre.id;
@@ -331,20 +396,15 @@ function DrawConnections(editor: Editor, shapes: any[]) {
         }
 
 
+        editor.createShape<TLArrowShape>(arrow);
+        editor.createBinding(bindingStart);
+        editor.createBinding(bindingEnd);
+
         arrows.push(arrow);
-        arrowBindings.push(bindingStart);
-        arrowBindings.push(bindingEnd);
 
     }
-
-    editor.createShapes(shapes);
-    editor.createShapes<TLArrowShape>(arrows);
-    editor.createBindings(arrowBindings);
-
-    return {
-        preArrowId: preId,
-        aftArrowId: afterId
-    }
+    arrows.push(lastArrow);
+    return arrows;
 }
 
 export function DrawSupplyLoop(editor: Editor) {
@@ -367,7 +427,7 @@ export function DrawSupplyLoop(editor: Editor) {
         return shape;
     });
     editor.createShapes(shapes);
-    DrawConnections(editor, shapes);
+    const arrows = DrawConnections({ editor, shapes });
 
 }
 
@@ -383,6 +443,13 @@ export function DrawDemandLoop(editor: Editor) {
     const size = 100;
     const baseX = 300;
     const baseY = 300;
+    const ll = demandComs.length
+    console.log('demandComponent: ' + ll);
+
+    demandComs.forEach(_ => {
+        console.log(_);
+
+    })
 
 
     demandComs.forEach(_ => {
@@ -394,19 +461,17 @@ export function DrawDemandLoop(editor: Editor) {
 
         if (ibType === "AirLoopBranches") {
             const branches: any[][] = obj.Branches;
-            const preArrowIds: TLShapeId[] = [];
-            const aftArrowIds: TLShapeId[] = [];
+            const firstArrows: TLArrowShape[] = [];
+            const lastArrows: TLArrowShape[] = [];
             for (let i = 0; i < branches.length; i++) {
                 const branchItems = branches[i];
                 const shapes = branchItems.map(_ => GenShape(_, size, x, y + i * (spaceY + size)));
                 editor.createShapes(shapes);
-                const preAftIds = DrawConnections(editor, shapes);
-                if (preAftIds !== undefined) {
-                    preArrowIds.push(preAftIds.preArrowId);
-                    aftArrowIds.push(preAftIds.aftArrowId);
-                }
+                const arrows = DrawConnections({ editor, shapes });
+                firstArrows.push(arrows[0]);
+                lastArrows.push(arrows[arrows.length - 1]);
             }
-            DrawBranchConnections(editor, preArrowIds, aftArrowIds);
+            DrawBranchConnections({ editor, preArrows: firstArrows, aftArrows: lastArrows });
 
 
         } else {
