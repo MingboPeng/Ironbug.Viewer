@@ -8,15 +8,17 @@ import {
 	useReactor,
 	TLArrowBindingProps,
 	TLShapeId,
-	createShapeId
+	createShapeId,
+	PageRecordType,
+	hardResetEditor
 } from 'tldraw'
 import 'tldraw/tldraw.css'
 
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { IBShape, IBShapeUtil } from "./../shapes/LoopObjShape";
 import IB_Sys07 from './../assets/HVAC/Sys07_VAV Reheat.json'
-import { DrawDemandLoop, DrawLoop, DrawSupplyLoop } from '../shapes/Loop';
+import { DrawDemandLoop, DrawLoop, DrawLoops, DrawSupplyLoop } from '../shapes/Loop';
 import { IBLoopShapeUtil } from '../shapes/LoopShape';
 
 // [6]
@@ -74,20 +76,40 @@ function CustomStylePanel() {
 
 
 
-function OnMountLoading(editor: Editor) {
-	console.log(IB_Sys07);
-	DrawLoop(editor);
-}
-
 export default function ShapeWithTldrawStylesExample() {
+
+	// const [isMounted, setIsMounted] = useState(false);
+
+	// useEffect(() => {
+	// 	hardResetEditor();
+	// }, []);
+
+
+	function OnMountLoading(editor: Editor) {
+		// console.log(IB_Sys07);
+
+		// if (!isMounted) {
+		// 	setIsMounted(true);
+		// 	// editor.store.clear();
+		// 	DrawLoops(editor);
+
+		// } else {
+		// 	console.log("aaaa");
+
+		// }
+		DrawLoops(editor);
+
+	}
 	return (
 		<div style={{ position: 'fixed', inset: 0 }}>
 			<Tldraw
+				persistenceKey="ironbug_viewer"
 				shapeUtils={[IBShapeUtil, IBLoopShapeUtil]}
 				components={{
 					StylePanel: CustomStylePanel,
 				}}
 				onMount={OnMountLoading}
+
 			/>
 		</div>
 	)
