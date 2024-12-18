@@ -26,11 +26,11 @@ const loadJsonFile = async (path: string) => {
 function cleanTrackingId(comment: string) {
     //TrackingID:#[535f96e2]
     // const comment: string | null = obj.CustomAttributes.find(o => o.Field.FullName == 'Comment')?.Value as string;
-    console.log(comment);
+    // console.log(comment);
     let trackingId = comment;
 
     if (comment != null && comment != undefined) {
-        const regex = / \[(.*?)\] /;
+        const regex = /\[([^\]]+)\]/;
         const match = comment.match(regex);
 
         if (match && match[1]) {
