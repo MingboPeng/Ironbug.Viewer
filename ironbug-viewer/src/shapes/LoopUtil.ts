@@ -1,4 +1,4 @@
-import { Box } from "tldraw";
+import { Box, Vec } from "tldraw";
 
 export const SPACEX = 80;
 export const SPACEY = 40;
@@ -71,9 +71,9 @@ export function CalAlignedBounds(supplyObjs:any[],demandObjs:any[]) : {sp: Box, 
     // align supply bound and demand bound
     const xShift = spBound.midX - dmBound.midX;
     if(xShift > 0){
-        dmBound.set(xShift);
+        dmBound.translate( new Vec(xShift));
     }else{
-        spBound.set(xShift);
+        spBound.translate(new Vec(xShift));
     }
     return {sp:spBound, dm:dmBound};
 
