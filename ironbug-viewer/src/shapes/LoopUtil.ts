@@ -1,3 +1,5 @@
+import { Box } from "tldraw";
+
 export const SPACEX = 80;
 export const SPACEY = 40;
 export const OBJSIZE = 100;
@@ -59,6 +61,23 @@ export function GetHvacType(obj: any) {
 
 }
 
+export function CalAlignedBounds(supplyObjs:any[],demandObjs:any[]) : {sp: Box, dm:Box }{
+    const spW = CalWidth(supplyObjs);
+    const spBound = new Box(0,0, spW, 100);
+
+    const dmW = CalWidth(demandObjs);
+    const dmBound = new Box(0,0, dmW, 100);
+
+    // align supply bound and demand bound
+    const xShift = spBound.midX - dmBound.midX;
+    if(xShift > 0){
+        dmBound.set(xShift);
+    }else{
+        spBound.set(xShift);
+    }
+    return {sp:spBound, dm:dmBound};
+
+}
 
 // width : -o-o-o-
 export function CalWidth(objs:any[]): number  {
@@ -76,6 +95,9 @@ export function CalWidth(objs:any[]): number  {
             itemW = OBJSIZE * 2;
         }else  if (objType === "AirLoopBranches" || objType === 'PlantLoopBranches'){
             itemW = CalBranchesWidth(obj);
+        }else  if (objType === "ThermalZone"){
+            const aT = obj.AirTerminal;
+            itemW = aT !== undefined? OBJSIZE*2 + SPACEX : OBJSIZE;
         }
 
         w = w+itemW + SPACEX;
@@ -90,7 +112,7 @@ export function CalWidth(objs:any[]): number  {
 
 }
 
-// width : -[-o-o-]-
+// width : [-o-o-]
 export function CalBranchesWidth(branchesObj:any): number {
     const objs :any[][] = branchesObj.Branches;
 

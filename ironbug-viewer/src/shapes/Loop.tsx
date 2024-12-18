@@ -4,7 +4,7 @@ import IB_Sys07 from './../assets/HVAC/Sys07_VAV Reheat.json'
 import { GetImage } from './OsImages';
 import { IBShape } from './LoopObjShape';
 import { IBLoopShape } from './LoopShape';
-import { GetHvacType, GetName, GetTrackingId } from './LoopUtil';
+import { CalAlignedBounds, CalWidth, GetHvacType, GetName, GetTrackingId } from './LoopUtil';
 
 
 
@@ -464,14 +464,14 @@ function DrawLoopBranches(editor: Editor, branchesComponent: any, baseX: number,
 
 }
 
-export function DrawSupplyLoop(editor: Editor, components: any[]): TLArrowShape[] {
+export function DrawSupplyLoop(editor: Editor, components: any[], bound: Box): TLArrowShape[] {
 
     const supplyComs = components;
 
     const space = SPACEX;
     const size = OBJSIZE;
 
-    let baseX = 0 + space; // add one space for leading connection
+    let baseX = bound.x; // add one space for leading connection
     let baseY = size;
     const shapes: any[] = [];
     // let count = 0;
@@ -509,14 +509,14 @@ export function DrawSupplyLoop(editor: Editor, components: any[]): TLArrowShape[
 
 }
 
-export function DrawDemandLoop(editor: Editor, components: any[]): TLArrowShape[] {
+export function DrawDemandLoop(editor: Editor, components: any[], bound: Box): TLArrowShape[] {
 
     const demandComs = components;
 
     const space = SPACEX;
     const spaceY = SPACEY;
     const size = OBJSIZE;
-    let baseX = 0 + space; // add one space for leading connection
+    let baseX = bound.x; // add one space for leading connection
     let baseY = 500;
 
     const shapes: any[] = [];
@@ -588,20 +588,23 @@ export function DrawLoop(editor: Editor, loop: any) {
     const pageName = GetHvacType(loop) + " " + _currentLoopId;
     editor.renamePage(page, pageName);
 
+    const { sp: spBound, dm: dmBound } = CalAlignedBounds(loop.SupplyComponents, loop.DemandComponents);
 
-    const spArrs = DrawSupplyLoop(editor, loop.SupplyComponents);
-    const dmArrs = DrawDemandLoop(editor, loop.DemandComponents);
+    const loopBound = spBound.union(dmBound);
+
+    const spArrs = DrawSupplyLoop(editor, loop.SupplyComponents, spBound);
+    const dmArrs = DrawDemandLoop(editor, loop.DemandComponents, dmBound);
     const spLeft = spArrs[0];
     const spRight = spArrs[spArrs.length - 1];
-    const spLeftBound = GetShapeBound(spLeft);
-    const spRightBound = GetShapeBound(spRight);
-    const spBound = spLeftBound.union(spRightBound);
+    // const spLeftBound = GetShapeBound(spLeft);
+    // const spRightBound = GetShapeBound(spRight);
+    // const spBound = spLeftBound.union(spRightBound);
 
     const dmRight = dmArrs[0];
     const dmLeft = dmArrs[dmArrs.length - 1];
-    const dmLeftBound = GetShapeBound(dmLeft);
-    const dmRightBound = GetShapeBound(dmRight);
-    const dmBound = dmLeftBound.union(dmRightBound);
+    // const dmLeftBound = GetShapeBound(dmLeft);
+    // const dmRightBound = GetShapeBound(dmRight);
+    // const dmBound = dmLeftBound.union(dmRightBound);
 
 
     const w = Math.max(spBound.width, dmBound.width);
