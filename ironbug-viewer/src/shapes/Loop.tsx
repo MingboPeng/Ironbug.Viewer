@@ -471,8 +471,8 @@ export function DrawSupplyLoop(editor: Editor, components: any[], bound: Box): T
     const space = SPACEX;
     const size = OBJSIZE;
 
-    let baseX = bound.x; // add one space for leading connection
-    let baseY = size;
+    let baseX = bound.x + space; // add one space for leading connection
+    let baseY = bound.y;
     const shapes: any[] = [];
     // let count = 0;
     // const leftRightArrows: TLArrowShape[] = [];
@@ -516,7 +516,7 @@ export function DrawDemandLoop(editor: Editor, components: any[], bound: Box): T
     const space = SPACEX;
     const spaceY = SPACEY;
     const size = OBJSIZE;
-    let baseX = bound.x; // add one space for leading connection
+    let baseX = bound.x + space; // add one space for leading connection
     let baseY = 500;
 
     const shapes: any[] = [];
@@ -576,6 +576,21 @@ function CheckCreatePage(editor: Editor) {
 
 let _currentLoopId: string = '';
 
+function _debugDrawBound(editor: Editor, bound: Box) {
+    editor.createShape(
+        {
+            "type": "geo",
+            "x": bound.x,
+            "y": bound.y,
+            "props": {
+                "w": bound.w,
+                "h": bound.h,
+                "geo": "rectangle",
+            }
+        }
+    );
+}
+
 export function DrawLoop(editor: Editor, loop: any) {
 
     _currentLoopId = GetTrackingId(loop);
@@ -621,13 +636,14 @@ export function DrawLoop(editor: Editor, loop: any) {
     }
     const seperatorBound = GetShapeBound(separatorShape);
 
+
     editor.createShape(separatorShape);
 
 
     const arrowSpLeft = {
         id: createShapeId('sL' + spLeft.id),
         type: "arrow",
-        x: spLeft.x,
+        x: seperatorBound.minX,
         y: seperatorBound.midY,
         props: {
             start: { x: 0, y: 0, },
@@ -640,8 +656,8 @@ export function DrawLoop(editor: Editor, loop: any) {
     const arrowSpRight = {
         id: createShapeId('sR' + spRight.id),
         type: "arrow",
-        x: spLeft.x + w,
-        y: spLeft.y,
+        x: spBound.maxX,
+        y: spBound.midY,
         props: {
             start: { x: 0, y: 0, },
             end: { x: 0, y: seperatorBound.midY - spBound.midY, },
