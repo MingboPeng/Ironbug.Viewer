@@ -6,9 +6,10 @@ import ShapeWithTldrawStylesExample from './components/shapeStyle'
 // import App from './components/viewer'
 
 createRoot(document.getElementById('root')!).render(
-  <StrictMode>
-    {/* <CustomShapeExample /> */}
-    {/* <App></App> */}
-    <ShapeWithTldrawStylesExample></ShapeWithTldrawStylesExample>
-  </StrictMode>,
+  <ShapeWithTldrawStylesExample />
+  // <StrictMode>
+  //   {/* <CustomShapeExample /> */}
+  //   {/* <App></App> */}
+  //   <ShapeWithTldrawStylesExample />
+  // </StrictMode>,
 )
