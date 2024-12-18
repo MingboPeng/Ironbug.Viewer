@@ -25,28 +25,27 @@ function cleanTrackingId(comment: string) {
     return trackingId;
 }
 
-
 export function GetTrackingId(obj: any) {
     //TrackingID:#[535f96e2]
     const attributes: any[] = obj.CustomAttributes;
-    const comment: string | null = attributes.find(o => o.Field.FullName == 'Comment')?.Value as string;
+    const comment: string | null = attributes.find(
+        (o) => o.Field.FullName == "Comment"
+    )?.Value as string;
     // console.log(comment);
     const trackingId = cleanTrackingId(comment);
     return trackingId;
-
 }
 
 export function GetName(obj: any): string {
     //TrackingID:#[535f96e2]
     const attributes: any[] = obj.CustomAttributes;
-    const value: string | null = attributes.find(o => o.Field.FullName == 'Name')?.Value as string;
-    return value ?? '';
-
+    const value: string | null = attributes.find(
+        (o) => o.Field.FullName == "Name"
+    )?.Value as string;
+    return value ?? "";
 }
 
-
 export function GetHvacType(obj: any) {
-
     // Ironbug.HVAC.IB_OutdoorAirSystem, Ironbug.HVAC
     let type = obj.$type;
     const index = type.indexOf(".IB_");
@@ -55,79 +54,96 @@ export function GetHvacType(obj: any) {
         type = type.substring(index + 4);
     }
 
-
     const ibType = type.replace(", Ironbug.HVAC", "");
     return ibType;
-
 }
 
-export function CalAlignedBounds(supplyObjs:any[],demandObjs:any[]) : {sp: Box, dm:Box }{
-    const spW = CalWidth(supplyObjs);
-    const spBound = new Box(0,0, spW, 100);
+export function CalAlignedBounds(supplyObjs: any[], demandObjs: any[]): { sp: Box; dm: Box; separator: Box } {
 
-    const dmW = CalWidth(demandObjs);
-    const dmBound = new Box(0,0, dmW, 100);
+    const spS = CalSize(supplyObjs);
+    const sp = new Box(0, 0, spS.w, spS.h);
+
+    const separatorH = OBJSIZE;
+    const separatorY = sp.maxY + SPACEY;
+
+    const dmY = separatorY + separatorH + SPACEY;
+    const dmS = CalSize(demandObjs);
+    const dm = new Box(0, dmY, dmS.w, dmS.h);
 
     // align supply bound and demand bound
-    const xShift = spBound.midX - dmBound.midX;
-    if(xShift > 0){
-        dmBound.translate( new Vec(xShift));
-    }else{
-        spBound.translate(new Vec(xShift));
+    const xShift = sp.midX - dm.midX;
+    if (xShift > 0) {
+        dm.translate(new Vec(xShift));
+    } else {
+        sp.translate(new Vec(xShift));
     }
-    return {sp:spBound, dm:dmBound};
 
+    // separator
+    const separatorW = Math.max(sp.w, dm.w);
+    const separator = new Box(0, separatorY, separatorW, separatorH);
+
+    return { sp, dm, separator };
 }
 
+// export function
+
 // width : -o-o-o-
-export function CalWidth(objs:any[]): number  {
+function CalSize(objs: any[]): { w: number; h: number } {
     // calculate the total width of object for preparing the document
     const objCount = objs.length;
     let w = 0;
+    let h = 0;
 
     // calculate each obj's width with a following space
-    for (let i = 0; i < objs.length; i++) {
+    for (let i = 0; i < objCount; i++) {
         const obj = objs[i];
         const objType = GetHvacType(obj);
         let itemW = OBJSIZE;
+        let itemH = OBJSIZE;
 
         if (objType === "OutdoorAirSystem") {
             itemW = OBJSIZE * 2;
-        }else  if (objType === "AirLoopBranches" || objType === 'PlantLoopBranches'){
-            itemW = CalBranchesWidth(obj);
-        }else  if (objType === "ThermalZone"){
+        } else if (
+            objType === "AirLoopBranches" ||
+            objType === "PlantLoopBranches"
+        ) {
+            const itemSize = CalBranchesSize(obj);
+            itemW = itemSize.w;
+            itemH = itemSize.h;
+        } else if (objType === "ThermalZone") {
             const aT = obj.AirTerminal;
-            itemW = aT !== undefined? OBJSIZE*2 + SPACEX : OBJSIZE;
+            itemW = aT !== undefined ? OBJSIZE * 2 + SPACEX : OBJSIZE;
         }
 
-        w = w+itemW + SPACEX;
-
+        w = w + itemW + SPACEX;
+        h = Math.max(h, itemH);
     }
 
- 
     // add a space at the begging of the all objs
-    w += SPACEX
+    w += SPACEX;
 
-    return w;
-
+    return { w, h };
 }
 
 // width : [-o-o-]
-export function CalBranchesWidth(branchesObj:any): number {
-    const objs :any[][] = branchesObj.Branches;
+function CalBranchesSize(branchesObj: any): { w: number; h: number } {
+    const objs: any[][] = branchesObj.Branches;
 
     let w = 0;
+    let h = 0;
 
     for (let i = 0; i < objs.length; i++) {
         const branchItems = objs[i];
-        const branchW = CalWidth(branchItems);
-        w = Math.max(w, branchW);
-
+        const branchSize = CalSize(branchItems);
+        w = Math.max(w, branchSize.w);
+        h += branchSize.h + SPACEY;
     }
 
-    return w;
+    // remove the last SPACEY from h
+    // when there are more than one branch
+    if (objs.length > 1) {
+        h -= SPACEY;
+    }
 
-
-
-
+    return { w, h };
 }

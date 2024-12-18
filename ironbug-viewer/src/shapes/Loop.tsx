@@ -4,7 +4,7 @@ import IB_Sys07 from './../assets/HVAC/Sys07_VAV Reheat.json'
 import { GetImage } from './OsImages';
 import { IBShape } from './LoopObjShape';
 import { IBLoopShape } from './LoopShape';
-import { CalAlignedBounds, CalWidth, GetHvacType, GetName, GetTrackingId } from './LoopUtil';
+import { CalAlignedBounds, GetHvacType, GetName, GetTrackingId, OBJSIZE, SPACEX, SPACEY } from './LoopUtil';
 
 
 
@@ -100,9 +100,6 @@ function GetShapeBound(shape: any): Box {
 
 }
 
-const SPACEX = 80;
-const SPACEY = 40;
-const OBJSIZE = 100;
 
 function DrawBranchConnections({ editor, preArrows, aftArrows }: { editor: Editor; preArrows: TLArrowShape[]; aftArrows: TLArrowShape[]; }): any[] {
     // const shapeId = shape.id;
@@ -208,66 +205,21 @@ function DrawBranchConnections({ editor, preArrows, aftArrows }: { editor: Edito
         editor.createBinding<TLArrowBinding>(binding);
     })
 
-    // const arrowLength = SPACEX / 2;
-    // // draw arrow before -|
-    // const firstArrow = {
-    //     id: createShapeId('arrow_s' + linePre.id),
-    //     type: "arrow",
-    //     x: linePre.x - arrowLength,
-    //     y: linePre.y + h / 2,
-    //     props: {
-    //         start: { x: 0, y: 0, },
-    //         end: { x: arrowLength, y: 0, },
-    //         arrowheadStart: 'none',
-    //         arrowheadEnd: 'none',
-    //     }
-    // } as TLArrowShape;
-    // editor.createShape(firstArrow);
-    // const preBinding = {
-    //     fromId: firstArrow.id, // The arrow
-    //     toId: linePre.id, // The shape being connected (end point)
-    //     props: {
-    //         terminal: 'end'
-    //     }, type: "arrow"
-    // } as TLArrowBinding;
-    // editor.createBinding<TLArrowBinding>(preBinding);
-
-    // // draw arrow after |-
-    // const lastArrow = {
-    //     id: createShapeId('arrow_e' + lineAfter.id),
-    //     type: "arrow",
-    //     x: lineAfter.x,
-    //     y: lineAfter.y + h / 2,
-    //     props: {
-    //         start: { x: 0, y: 0, },
-    //         end: { x: arrowLength, y: 0, },
-    //         arrowheadStart: 'none',
-    //         arrowheadEnd: 'none',
-    //     }
-    // } as TLArrowShape;
-    // editor.createShape(lastArrow);
-    // const aftBinding = {
-    //     fromId: lastArrow.id, // The arrow
-    //     toId: lineAfter.id, // The shape being connected (end point)
-    //     props: {
-    //         terminal: 'start'
-    //     }, type: "arrow"
-    // } as TLArrowBinding;
-    // editor.createBinding<TLArrowBinding>(aftBinding);
 
     return [lineLeft, lineRight];
 }
 
-function DrawPreConnection(editor: Editor, shape: any): TLArrowShape {
+function DrawPreConnection(editor: Editor, shape: any, minX?: number): TLArrowShape {
     const shapeId = shape.id;
     const length = SPACEX;
     const bound = GetShapeBound(shape);
 
+    const x = minX ?? bound.minX - length;
     // --o
     const arrowPre = {
         id: createShapeId(_currentLoopId + '_-' + shapeId),
         type: "arrow",
-        x: bound.minX - length,
+        x: x,
         y: bound.midY,
         props: {
             start: { x: 0, y: 0, },
@@ -291,11 +243,11 @@ function DrawPreConnection(editor: Editor, shape: any): TLArrowShape {
     return arrowPre;
 }
 
-function DrawAfterConnection(editor: Editor, shape: any): TLArrowShape {
+function DrawAfterConnection(editor: Editor, shape: any, maxX?: number): TLArrowShape {
     const shapeId = shape.id;
-    const length = SPACEX;
     const bound = GetShapeBound(shape);
-
+    const endX = maxX ?? bound.maxX + SPACEX;
+    const length = endX - bound.maxX;
 
     // o--
     const arrowAfter = {
@@ -327,17 +279,16 @@ function DrawAfterConnection(editor: Editor, shape: any): TLArrowShape {
 }
 
 // draw connections in between shapes and before/after the first/last shape
-function DrawConnections({ editor, shapes }: { editor: Editor; shapes: any[]; }): TLArrowShape[] {
+function DrawConnections({ editor, shapes, bound }: { editor: Editor; shapes: any[]; bound?: Box }): TLArrowShape[] {
 
     if (shapes.length === 0) return [];
 
-
     // --o arrow before the first shape
     const firstShape = shapes[0];
-    const firstArrow = DrawPreConnection(editor, firstShape);
+    const firstArrow = DrawPreConnection(editor, firstShape, bound?.minX);
     // o-- arrow after the last shape
     const lastShape = shapes[shapes.length - 1];
-    const lastArrow = DrawAfterConnection(editor, lastShape);
+    const lastArrow = DrawAfterConnection(editor, lastShape, bound?.maxX);
 
 
     // draw connection in between
@@ -464,7 +415,7 @@ function DrawLoopBranches(editor: Editor, branchesComponent: any, baseX: number,
 
 }
 
-export function DrawSupplyLoop(editor: Editor, components: any[], bound: Box): TLArrowShape[] {
+export function DrawSupplyLoop(editor: Editor, components: any[], bound: Box, loopBound: Box): TLArrowShape[] {
 
     const supplyComs = components;
 
@@ -504,12 +455,12 @@ export function DrawSupplyLoop(editor: Editor, components: any[], bound: Box): T
 
     });
 
-    const arrows = DrawConnections({ editor, shapes });
+    const arrows = DrawConnections({ editor, shapes, bound: loopBound });
     return arrows;
 
 }
 
-export function DrawDemandLoop(editor: Editor, components: any[], bound: Box): TLArrowShape[] {
+export function DrawDemandLoop(editor: Editor, components: any[], bound: Box, loopBound: Box): TLArrowShape[] {
 
     const demandComs = components;
 
@@ -517,7 +468,7 @@ export function DrawDemandLoop(editor: Editor, components: any[], bound: Box): T
     const spaceY = SPACEY;
     const size = OBJSIZE;
     let baseX = bound.x + space; // add one space for leading connection
-    let baseY = 500;
+    let baseY = bound.y;
 
     const shapes: any[] = [];
     // let firstLastArrows: TLArrowShape[] = [];
@@ -551,7 +502,7 @@ export function DrawDemandLoop(editor: Editor, components: any[], bound: Box): T
 
     });
 
-    const arrows = DrawConnections({ editor, shapes });
+    const arrows = DrawConnections({ editor, shapes, bound: loopBound });
     return arrows;
 
 
@@ -603,41 +554,39 @@ export function DrawLoop(editor: Editor, loop: any) {
     const pageName = GetHvacType(loop) + " " + _currentLoopId;
     editor.renamePage(page, pageName);
 
-    const { sp: spBound, dm: dmBound } = CalAlignedBounds(loop.SupplyComponents, loop.DemandComponents);
+    const { sp: spBound, dm: dmBound, separator: seperatorBound } = CalAlignedBounds(loop.SupplyComponents, loop.DemandComponents);
 
-    const loopBound = spBound.union(dmBound);
+    const loopBound = Box.From(spBound).union(dmBound,).union(seperatorBound);
 
-    const spArrs = DrawSupplyLoop(editor, loop.SupplyComponents, spBound);
-    const dmArrs = DrawDemandLoop(editor, loop.DemandComponents, dmBound);
+    const spArrs = DrawSupplyLoop(editor, loop.SupplyComponents, spBound, loopBound);
+    const dmArrs = DrawDemandLoop(editor, loop.DemandComponents, dmBound, loopBound);
     const spLeft = spArrs[0];
     const spRight = spArrs[spArrs.length - 1];
     // const spLeftBound = GetShapeBound(spLeft);
     // const spRightBound = GetShapeBound(spRight);
     // const spBound = spLeftBound.union(spRightBound);
 
-    const dmRight = dmArrs[0];
-    const dmLeft = dmArrs[dmArrs.length - 1];
+
+    const dmLeft = dmArrs[0];
+    const dmRight = dmArrs[dmArrs.length - 1];
     // const dmLeftBound = GetShapeBound(dmLeft);
     // const dmRightBound = GetShapeBound(dmRight);
     // const dmBound = dmLeftBound.union(dmRightBound);
 
-
-    const w = Math.max(spBound.width, dmBound.width);
-
-    const separatorY = OBJSIZE + SPACEY;
     const separatorShape = {
         type: 'IBLoopShape',
-        x: spLeft.x,
-        y: spLeft.y + separatorY,
+        x: seperatorBound.x,
+        y: seperatorBound.y,
         props: {
-            w: w,
-            h: OBJSIZE,
+            w: seperatorBound.w,
+            h: seperatorBound.h,
         },
     }
-    const seperatorBound = GetShapeBound(separatorShape);
-
-
     editor.createShape(separatorShape);
+
+    // _debugDrawBound(editor, spBound);
+    // _debugDrawBound(editor, seperatorBound);
+    // _debugDrawBound(editor, dmBound);
 
 
     const arrowSpLeft = {
@@ -647,7 +596,7 @@ export function DrawLoop(editor: Editor, loop: any) {
         y: seperatorBound.midY,
         props: {
             start: { x: 0, y: 0, },
-            end: { x: 0, y: spBound.midY - seperatorBound.midY, },
+            end: { x: 0, y: spLeft.y - seperatorBound.midY, },
             arrowheadStart: 'none',
             arrowheadEnd: 'none',
         }
@@ -657,10 +606,10 @@ export function DrawLoop(editor: Editor, loop: any) {
         id: createShapeId('sR' + spRight.id),
         type: "arrow",
         x: spBound.maxX,
-        y: spBound.midY,
+        y: spRight.y,
         props: {
             start: { x: 0, y: 0, },
-            end: { x: 0, y: seperatorBound.midY - spBound.midY, },
+            end: { x: 0, y: seperatorBound.midY - spRight.y, },
             arrowheadStart: 'none',
         }
     } as TLArrowShape;
@@ -676,7 +625,7 @@ export function DrawLoop(editor: Editor, loop: any) {
         y: seperatorBound.midY,
         props: {
             start: { x: 0, y: 0, },
-            end: { x: 0, y: dmBound.midY - seperatorBound.midY, },
+            end: { x: 0, y: dmRight.y - seperatorBound.midY, },
             arrowheadStart: 'none',
             arrowheadEnd: 'none',
         }
@@ -686,10 +635,10 @@ export function DrawLoop(editor: Editor, loop: any) {
         id: createShapeId('dL' + dmLeft.id),
         type: "arrow",
         x: seperatorBound.minX,
-        y: dmBound.midY,
+        y: dmLeft.y,
         props: {
             start: { x: 0, y: 0, },
-            end: { x: 0, y: -(dmBound.midY - seperatorBound.midY), },
+            end: { x: 0, y: -(dmLeft.y - seperatorBound.midY), },
             arrowheadStart: 'none',
         }
     } as TLArrowShape;
