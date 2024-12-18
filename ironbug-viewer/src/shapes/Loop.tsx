@@ -4,6 +4,7 @@ import IB_Sys07 from './../assets/HVAC/Sys07_VAV Reheat.json'
 import { GetImage } from './OsImages';
 import { IBShape } from './LoopObjShape';
 import { IBLoopShape } from './LoopShape';
+import { GetHvacType, GetName, GetTrackingId } from './LoopUtil';
 
 
 
@@ -23,61 +24,9 @@ const loadJsonFile = async (path: string) => {
 };
 
 
-function cleanTrackingId(comment: string) {
-    //TrackingID:#[535f96e2]
-    // const comment: string | null = obj.CustomAttributes.find(o => o.Field.FullName == 'Comment')?.Value as string;
-    // console.log(comment);
-    let trackingId = comment;
-
-    if (comment != null && comment != undefined) {
-        const regex = /\[([^\]]+)\]/;
-        const match = comment.match(regex);
-
-        if (match && match[1]) {
-            trackingId = match[1];
-            // console.log(trackingId); // Output: 535f96e2
-        } else {
-            // console.error('No match found');
-        }
-    }
-    // console.log(trackingId);
-    return trackingId;
-}
-
-function GetTrackingId(obj: any) {
-    //TrackingID:#[535f96e2]
-    const attributes: any[] = obj.CustomAttributes;
-    const comment: string | null = attributes.find(o => o.Field.FullName == 'Comment')?.Value as string;
-    // console.log(comment);
-    const trackingId = cleanTrackingId(comment);
-    return trackingId;
-
-}
-
-function GetName(obj: any): string {
-    //TrackingID:#[535f96e2]
-    const attributes: any[] = obj.CustomAttributes;
-    const value: string | null = attributes.find(o => o.Field.FullName == 'Name')?.Value as string;
-    return value ?? '';
-
-}
 
 
-function GetHvacType(obj: any) {
 
-    // Ironbug.HVAC.IB_OutdoorAirSystem, Ironbug.HVAC
-    let type = obj.$type;
-    const index = type.indexOf(".IB_");
-    if (index !== -1) {
-        // Remove all characters before ".IB_"
-        type = type.substring(index + 4);
-    }
-
-
-    const ibType = type.replace(", Ironbug.HVAC", "");
-    return ibType;
-
-}
 
 function GenShape(obj: any, size: number, x: number, y: number) {
 
@@ -522,7 +471,7 @@ export function DrawSupplyLoop(editor: Editor, components: any[]): TLArrowShape[
     const space = SPACEX;
     const size = OBJSIZE;
 
-    let baseX = 0;
+    let baseX = 0 + space; // add one space for leading connection
     let baseY = size;
     const shapes: any[] = [];
     // let count = 0;
@@ -567,7 +516,7 @@ export function DrawDemandLoop(editor: Editor, components: any[]): TLArrowShape[
     const space = SPACEX;
     const spaceY = SPACEY;
     const size = OBJSIZE;
-    let baseX = 0;
+    let baseX = 0 + space; // add one space for leading connection
     let baseY = 500;
 
     const shapes: any[] = [];
