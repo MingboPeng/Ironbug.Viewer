@@ -18,7 +18,7 @@ import 'tldraw/tldraw.css'
 import { useEffect, useState } from 'react'
 import { IBShape, IBShapeUtil } from "./../shapes/LoopObjShape";
 import IB_Sys07 from './../assets/HVAC/Sys07_VAV Reheat.json'
-import { DrawDemandLoop, DrawLoop, DrawLoops, DrawSupplyLoop } from '../shapes/Loop';
+import { DrawDemandLoop, DrawLoop, DrawSupplyLoop } from '../shapes/Loop';
 import { IBLoopShapeUtil } from '../shapes/LoopShape';
 
 // [6]
@@ -101,7 +101,23 @@ export default function ShapeWithTldrawStylesExample() {
 		// editor.store.clear();
 		// const ss = editor.store.getStoreSnapshot();
 
-		DrawLoops(editor);
+
+		const sys = IB_Sys07;
+		const airLoops = sys.AirLoops;
+		const plantLoops = sys.PlantLoops;
+
+
+		airLoops.forEach(_ => {
+			const loop = _;
+			DrawLoop(editor, loop);
+		})
+
+		plantLoops.forEach(_ => {
+			const loop = _;
+			DrawLoop(editor, loop);
+		})
+
+
 
 	}
 	return (
