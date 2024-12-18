@@ -324,7 +324,7 @@ function DrawPreConnection(editor: Editor, shape: any): TLArrowShape {
             start: { x: 0, y: 0, },
             end: { x: length, y: 0, },
             arrowheadStart: 'none',
-            arrowheadEnd: 'dot',
+            arrowheadEnd: shape.type === 'line' ? 'none' : 'dot',
         }
     } as TLArrowShape;
 
@@ -357,7 +357,7 @@ function DrawAfterConnection(editor: Editor, shape: any): TLArrowShape {
         props: {
             start: { x: 0, y: 0, },
             end: { x: length, y: 0, },
-            arrowheadStart: 'dot',
+            arrowheadStart: shape.type === 'line' ? 'none' : 'dot',
             arrowheadEnd: 'none',
 
         }
@@ -400,6 +400,8 @@ function DrawConnections({ editor, shapes }: { editor: Editor; shapes: any[]; })
         const shape = shapes[i];
         const shapeId = shape.id;
 
+        const arrowHS = shapePre.type === 'line' ? 'none' : 'dot'
+        const arrowHE = shape.type === 'line' ? 'none' : 'dot'
         if (shapePre.type === 'line' && shape.type === 'line') {
             //skip adding a new connection line between loop branches
             continue;
@@ -414,8 +416,8 @@ function DrawConnections({ editor, shapes }: { editor: Editor; shapes: any[]; })
             props: {
                 start: { x: 1, y: 1, },
                 end: { x: 2, y: 2, },
-                arrowheadStart: 'dot',
-                arrowheadEnd: 'dot'
+                arrowheadStart: arrowHS,
+                arrowheadEnd: arrowHE
             }
         }
 
@@ -455,8 +457,8 @@ function DrawLoopBranches(editor: Editor, branchesComponent: any, baseX: number,
     const y = baseY;
 
     const branches: any[][] = branchesComponent.Branches;
-    const firstArrows: TLArrowShape[] = [];
-    const lastArrows: TLArrowShape[] = [];
+    const leftArrows: TLArrowShape[] = [];
+    const rightArrows: TLArrowShape[] = [];
     for (let i = 0; i < branches.length; i++) {
         const branchItems = branches[i];
         const shapes = branchItems.flatMap(_ => {
@@ -482,11 +484,33 @@ function DrawLoopBranches(editor: Editor, branchesComponent: any, baseX: number,
 
         editor.createShapes(shapes);
         const arrows = DrawConnections({ editor, shapes });
-        firstArrows.push(arrows[0]);
-        lastArrows.push(arrows[arrows.length - 1]);
+        leftArrows.push(arrows[0]);
+        rightArrows.push(arrows[arrows.length - 1]);
     }
 
-    const leftRightLines = DrawBranchConnections({ editor, preArrows: firstArrows, aftArrows: lastArrows });
+    // add a bypass connection in branch
+    if (branches.length === 1) {
+        const byY = y + (spaceY + size);
+        // use the first branch connection arrow 's id for the reference
+        const arrowId = createShapeId('bypass' + leftArrows[0].id);
+        const bypass: any = {
+            id: arrowId,
+            type: "arrow",
+            x: 0,
+            y: byY,
+            props: {
+                start: { x: 1, y: 1, },
+                end: { x: 2, y: 2, },
+                arrowheadStart: 'none',
+                arrowheadEnd: 'none'
+            }
+        }
+        editor.createShape(bypass);
+        leftArrows.push(bypass);
+        rightArrows.push(bypass);
+    }
+
+    const leftRightLines = DrawBranchConnections({ editor, preArrows: leftArrows, aftArrows: rightArrows });
     return leftRightLines;
 
 }
