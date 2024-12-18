@@ -97,19 +97,22 @@ export default function ShapeWithTldrawStylesExample() {
 		// 	console.log("aaaa");
 
 		// }
+		// editor.clearHistory();
+		// editor.store.clear();
+		// const ss = editor.store.getStoreSnapshot();
+
 		DrawLoops(editor);
 
 	}
 	return (
 		<div style={{ position: 'fixed', inset: 0 }}>
 			<Tldraw
-				persistenceKey="ironbug_viewer"
+				// persistenceKey="ironbug_viewer"
 				shapeUtils={[IBShapeUtil, IBLoopShapeUtil]}
 				components={{
 					StylePanel: CustomStylePanel,
 				}}
 				onMount={OnMountLoading}
-
 			/>
 		</div>
 	)
