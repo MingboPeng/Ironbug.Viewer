@@ -1,0 +1,48 @@
+# .NET
+bin/
+obj/
+
+# ASP.NET Core
+wwwroot/
+
+# VS Code
+.vscode/
+
+# User-specific files
+*.rsuser
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+# Rider
+.idea/
+
+# Auto-generated files
+*.log
+*.tlog
+
+# Backup files
+*.bak
+
+# Other files
+*.DS_Store
+Thumbs.db
+
+# NuGet
+*.nupkg
+*.snupkg
+.nuget/
+packages/
+
+# macOS
+.DS_Store
+
+# Windows
+Thumbs.db
+Desktop.ini
+
+.vs
+bin/
+obj/
+wwwroot/
