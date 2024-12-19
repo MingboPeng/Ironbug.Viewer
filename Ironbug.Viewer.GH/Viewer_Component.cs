@@ -1,13 +1,8 @@
-using Grasshopper;
 using Grasshopper.Kernel;
-using Grasshopper.Kernel.Data;
-using Grasshopper.Kernel.Types;
-using IronbugViewer.GH;
-using PollinationBrowserControl;
 using Rhino;
-using Rhino.Geometry;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace IronbugViewer.GH
 {
@@ -32,7 +27,7 @@ namespace IronbugViewer.GH
         /// </summary>
         protected override void RegisterInputParams(GH_Component.GH_InputParamManager pManager)
         {
-            pManager[pManager.AddBooleanParameter("HVAC System", "hvac", "An Ironbug HVAC system.", GH_ParamAccess.list)].DataMapping = GH_DataMapping.Flatten;
+            pManager[pManager.AddGenericParameter("HVAC System", "hvac", "An Ironbug HVAC system.", GH_ParamAccess.list)].DataMapping = GH_DataMapping.Flatten;
         }
 
         /// <summary>
@@ -54,12 +49,50 @@ namespace IronbugViewer.GH
             var inputSys = new List<object>();
             if(!DA.GetDataList(0, inputSys)) return;
 
-            var hostParent = RhinoApp.MainWindowHandle();
-            _viewer = ViewerDialog.Init();
-            _viewer.MessageReceived += (s, e) => RhinoApp.WriteLine(s);
+            // get system json
+            var sysJson = string.Empty;
+            var userInput = inputSys.FirstOrDefault();
+            if (userInput is Grasshopper.Kernel.Types.GH_ObjectWrapper ow)
+            {
+                var obj = ow.Value;
+                var objType = obj.GetType();
+                if (objType.Name == "IB_HVACSystem")
+                {
+                    var md = objType.GetMethod("ToJson");
+                    if (md == null)
+                        throw new ArgumentException("Invalid IB_HVACSystem");
+                    var rdata = md.Invoke(obj, new object[] {false});
+                    sysJson = rdata?.ToString();
+                }
+            }
 
+            if (string.IsNullOrEmpty(sysJson))
+            {
+                throw new ArgumentException("Invalid Ironbug System!");
+            }
+
+
+            var hostParent = RhinoApp.MainWindowHandle();
+            string url = null;
+#if DEBUG
+            url = "http://localhost:5173";
+#endif
+            if (_viewer == null || !_viewer.IsLoaded)
+            {
+                _viewer = ViewerDialog.Init(url);
+                _viewer.MessageReceived += _viewer_MessageReceived;
+            }
+            
             // show or active the existing dialog
             _viewer.ShowWindow();
+
+            _viewer.SchedulePost(sysJson);
+
+        }
+
+        private void _viewer_MessageReceived(string message, Action<object> returnAction)
+        {
+            //Console.WriteLine(message);
 
         }
 

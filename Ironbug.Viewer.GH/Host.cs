@@ -9,7 +9,7 @@ namespace IronbugViewer.GH
     {
 
         private static Process _instance { get; set; }
-        public static void Start( string port = "8173")
+        public static string Start( string port = "8173")
         {
             //"D:\\Dev\\Ironbug.Viewer\\ironbug-viewer\\dist";
             var wwwroot = Path.Combine(Path.GetDirectoryName(typeof(Host).Assembly.Location), "wwwroot");
@@ -20,6 +20,8 @@ namespace IronbugViewer.GH
             var python = System.IO.Path.Combine("C:\\Program Files\\ladybug_tools\\python", "python");
             var args = $"-m http.server {port} --directory \"{wwwroot}\"";
             ExeCommand(python, args);
+
+            return $"http://localhost:{port}";
         }
 
         public static void Close()
