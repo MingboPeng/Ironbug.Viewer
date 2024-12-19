@@ -74,50 +74,101 @@ function CustomStylePanel() {
 	)
 }
 
+// function webview2Setup((json) => { } ) {
+// 	const wv2 = window.parent.chrome?.webview;
+// 	if (typeof wv2 === "undefined") {
+// 		loadSystem(editor, IB_Sys07)
+// 		return;
+
+// 	}
+// 	console.log("Is Viewer");
+
+
+// 	wv2.addEventListener("message", event => {
+// 		let data = "data" in event && event.data;
+// 		if (data === undefined)
+// 			data = IB_Sys07;
+// 		else {
+// 			const decodedData = atob(data as string);
+// 			const json = JSON.parse(decodedData);
+// 			console.log("Data received:", json);
+
+// 			loadSystem(editor, json);
+
+// 		}
+
+// 	})
+
+// }
+
+function loadSystem(editor: Editor, sys: any) {
+
+	const currentPages = editor.getPages();
+	for (let i = 0; i < currentPages.length; i++) {
+		const p = currentPages[i];
+		// console.log("deleting page:", p);
+		editor.deletePage(p);
+	}
+
+	// const sys = IB_Sys07;
+	const airLoops: any[] = sys.AirLoops;
+	const plantLoops: any[] = sys.PlantLoops;
+
+	airLoops.forEach(_ => {
+		const loop = _;
+		DrawLoop(editor, loop);
+	})
+
+	plantLoops.forEach(_ => {
+		const loop = _;
+		DrawLoop(editor, loop);
+	})
+
+
+	// switch to the first page
+	const firstPage = editor.getPages()[0];
+	if (firstPage !== undefined) {
+		editor.setCurrentPage(firstPage);
+	}
+
+}
 
 
 export default function ShapeWithTldrawStylesExample() {
 
-	// const [isMounted, setIsMounted] = useState(false);
+	const [editor, setEditor] = useState<Editor>();
+	// const [system, setSystem] = useState<any>(null);
 
-	// useEffect(() => {
-	// 	hardResetEditor();
-	// }, []);
+	// setup addEventListener
+	const wv2 = window.parent.chrome?.webview;
+	if (typeof wv2 !== "undefined") {
+		console.log("Is Viewer");
+		wv2.addEventListener("message", event => {
+			let data = "data" in event && event.data;
+			if (data !== undefined) {
+				const decodedData = atob(data as string);
+				const json = JSON.parse(decodedData);
+				console.log("Data received:", json);
+				// setSystem(json);
+				if (editor) {
+					loadSystem(editor, json);
+
+				}
+			}
+		})
+
+	}
 
 
 	function OnMountLoading(editor: Editor) {
-		// console.log(IB_Sys07);
+		const wv2 = window.parent.chrome?.webview;
+		if (typeof wv2 === "undefined") {
+			loadSystem(editor, IB_Sys07);
+		} else {
+			setEditor(editor);
+			wv2.postMessage("IBViewer loaded!");
 
-		// if (!isMounted) {
-		// 	setIsMounted(true);
-		// 	// editor.store.clear();
-		// 	DrawLoops(editor);
-
-		// } else {
-		// 	console.log("aaaa");
-
-		// }
-		// editor.clearHistory();
-		// editor.store.clear();
-		// const ss = editor.store.getStoreSnapshot();
-
-
-		const sys = IB_Sys07;
-		const airLoops = sys.AirLoops;
-		const plantLoops = sys.PlantLoops;
-
-
-		airLoops.forEach(_ => {
-			const loop = _;
-			DrawLoop(editor, loop);
-		})
-
-		plantLoops.forEach(_ => {
-			const loop = _;
-			DrawLoop(editor, loop);
-		})
-
-
+		}
 
 	}
 	return (
