@@ -27,32 +27,15 @@ jobs:
       tag: ${{ steps.semantic.outputs.new_release_version }}
 
   tests:
-    name: "Run tests"
+    name: Build and release
     runs-on: windows-latest
     needs: check-release
     if: ${{ contains(needs.check-release.outputs.tag, '.') }}
-    continue-on-error: false
-    strategy:
-      fail-fast: true
-      matrix:
-        dotnet_version: ["net48", "net7.0-windows"]
     env:
       NEW_RELEASE_VERSION: ${{needs.check-release.outputs.tag}}
-      LBT_FOLDER: "C:/Program Files/ladybug_tools"
 
     steps:
-      - name: "Checkout"
-        uses: actions/checkout@v4
-
-      - name: Setup dotnet
-        uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: 8.0.x
-
-      - name: Set up Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: lts/*
+      - uses: actions/checkout@v4
 
       - name: Build React project
         run: |
