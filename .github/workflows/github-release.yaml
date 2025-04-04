@@ -5,6 +5,9 @@ on:
     branches:
       - main
 
+env:
+  GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
+
 jobs:
   check-release:
     name: "Check if there is a need for a new release"
@@ -20,8 +23,6 @@ jobs:
         id: semantic
         with:
           dry_run: true
-        env:
-          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
 
     outputs:
       tag: ${{ steps.semantic.outputs.new_release_version }}
@@ -67,6 +68,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
       - uses: actions/download-artifact@v4
 
       - name: Display structure of downloaded files
@@ -74,12 +77,5 @@ jobs:
           cp ./IbViewer/IbViewer-*.zip ./
           ls
 
-      - name: Set up Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: lts/*
-
       - name: Semantic Release
         uses: cycjimmy/semantic-release-action@v4
-        env:
-          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
