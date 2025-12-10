@@ -2,6 +2,8 @@ name: Build and release on GitHub
 
 on:
   push:
+    branches:
+      - main
 
 jobs:
   check-release:
@@ -36,13 +38,12 @@ jobs:
 
       - name: Build React project
         run: |
-          cd ./ironbug-viewer
-          npm i
-          npm run build
+          make ts-install
+          make ts-build
 
       - name: Compile viewer
         run: |
-          dotnet build ./Ironbug.Viewer.GH/Ironbug.Viewer.GH.csproj --configuration Release -f net48 /p:Version=${{ env.NEW_RELEASE_VERSION }} -o ./IbViewer /restore
+          make cs-build
 
       - name: Zip assets
         run: |
