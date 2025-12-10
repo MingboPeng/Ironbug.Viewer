@@ -1,4 +1,4 @@
-.PHONY: sync-google-form
+.PHONY: cs-build
 
 NEW_RELEASE_VERSION ?= 0.0.1
 
