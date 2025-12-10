@@ -1,0 +1,35 @@
+name: Weekly Dependency Check and Update
+
+on:
+  workflow_dispatch: # Allows manual triggering
+  schedule:
+    # Runs at 00:00 on Sunday
+    - cron: "0 0 * * 0"
+
+jobs:
+  update-dependencies:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          # Use a PAT to allow the push to trigger other workflows
+          token: ${{ secrets.GH_TOKEN }}
+
+      - name: Run cs-update
+        run: make cs-update
+
+      - name: Commit and push changes
+        env:
+          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
+        run: |
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+          git add .
+          if (-not (git diff --staged --quiet)) {
+            git commit -m "fix: update C# dependencies"
+            git push
+          } else {
+            echo "No changes to commit."
+          }
+        shell: pwsh
