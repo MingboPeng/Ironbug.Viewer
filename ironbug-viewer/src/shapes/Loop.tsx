@@ -13,6 +13,7 @@ import {
   TLBaseBinding,
   TLBaseShape,
   TLLineShape,
+  TLShape,
   TLShapeId,
 } from "tldraw";
 import reactLogo from "./../assets/HVAC/Coil_Heating_Water_Baseboard_Radiant.png";
@@ -24,6 +25,7 @@ import {
   CalAlignedBounds,
   GetHvacType,
   GetName,
+  GetProperties,
   GetTrackingId,
   OBJSIZE,
   SPACEX,
@@ -49,10 +51,16 @@ function GenShape(obj: any, size: number, x: number, y: number) {
   let w = size;
   let h = size;
 
+  // const osProperties = GetProperties(obj);
+
+  // const trackingId = osProperties.Comment;
+  // // remove Comment property
+  // delete osProperties.Comment;
+
   const trackingId = GetTrackingId(obj);
   // Ironbug.HVAC.IB_OutdoorAirSystem, Ironbug.HVAC
   const ibType = GetHvacType(obj);
-  const name = GetName(obj);
+  // const name = GetName(obj);
 
   if (ibType === "OutdoorAirSystem") {
     w = w * 2;
@@ -68,8 +76,7 @@ function GenShape(obj: any, size: number, x: number, y: number) {
       w: w,
       h: h,
       url: imageUrl,
-      ostype: ibType,
-      name: name,
+      ibObj: obj,
     },
   };
 
@@ -380,13 +387,17 @@ function DrawLoopBranches(
   editor: Editor,
   branchesComponent: any,
   baseX: number,
-  baseY: number
+  baseY: number,
+  isSupplySide: boolean
 ): any[] {
   const space = SPACEX;
   const spaceY = SPACEY;
   const size = OBJSIZE;
   const x = baseX;
   const y = baseY;
+  const supplyDir = isSupplySide ? -1 : 1;
+
+  console.log("DrawLoopBranches", x, y, branchesComponent);
 
   const branches: any[][] = branchesComponent.Branches;
   const leftArrows: TLArrowShape[] = [];
@@ -396,9 +407,10 @@ function DrawLoopBranches(
     const shapes = branchItems.flatMap((_) => {
       const itemShapes = [];
       const itemX = x;
-      const itemY = y + i * (spaceY + size);
+      const itemY = y + i * (spaceY + size) * supplyDir;
       const shape = GenShape(_, size, itemX, itemY);
       itemShapes.push(shape);
+      // console.log("DrawLoopBranches Item", itemX, itemY);
 
       const itemType = GetHvacType(_);
       if (itemType === "ThermalZone") {
@@ -478,9 +490,18 @@ export function DrawSupplyLoop(
 
     const ibType = GetHvacType(obj);
 
+    // Supply loop's branches
     if (ibType === "PlantLoopBranches") {
       const branchX = x + space;
-      const leftRightLines = DrawLoopBranches(editor, obj, branchX, y);
+      const branchY = y;
+      console.log("PlantLoopBranches", branchX, branchY);
+      const leftRightLines = DrawLoopBranches(
+        editor,
+        obj,
+        branchX,
+        branchY,
+        true
+      );
       const leftLine = leftRightLines[0];
       const rightLine = leftRightLines[leftRightLines.length - 1];
 
@@ -526,7 +547,7 @@ export function DrawDemandLoop(
 
     if (ibType === "AirLoopBranches" || ibType === "PlantLoopBranches") {
       const branchX = x + space;
-      const leftRightLines = DrawLoopBranches(editor, obj, branchX, y);
+      const leftRightLines = DrawLoopBranches(editor, obj, branchX, y, false);
       const leftLine = leftRightLines[0];
       const rightLine = leftRightLines[leftRightLines.length - 1];
 
@@ -593,11 +614,8 @@ export function DrawLoop(editor: Editor, loop: any) {
   } = CalAlignedBounds(loop.SupplyComponents, loop.DemandComponents);
 
   const loopBound = Box.From(spBound).union(dmBound).union(seperatorBound);
-  // page.meta = {
-  //   bounds: JSON.stringify(loopBound),
-  // };
   page.name = pageName;
-  const zoomToBound = { ...loopBound, h: 460 };
+  const zoomToBound = { ...loopBound, h: 460, w: loopBound.width + 400 };
   editor.zoomToBounds(zoomToBound);
   // console.log("page", zoomToBound);
   editor.updatePage(page);
@@ -616,15 +634,8 @@ export function DrawLoop(editor: Editor, loop: any) {
   );
   const spLeft = spArrs[0];
   const spRight = spArrs[spArrs.length - 1];
-  // const spLeftBound = GetShapeBound(spLeft);
-  // const spRightBound = GetShapeBound(spRight);
-  // const spBound = spLeftBound.union(spRightBound);
-
   const dmLeft = dmArrs[0];
   const dmRight = dmArrs[dmArrs.length - 1];
-  // const dmLeftBound = GetShapeBound(dmLeft);
-  // const dmRightBound = GetShapeBound(dmRight);
-  // const dmBound = dmLeftBound.union(dmRightBound);
 
   const separatorShape = {
     type: "IBLoopShape",
@@ -636,10 +647,6 @@ export function DrawLoop(editor: Editor, loop: any) {
     },
   };
   editor.createShape(separatorShape);
-
-  // _debugDrawBound(editor, spBound);
-  // _debugDrawBound(editor, seperatorBound);
-  // _debugDrawBound(editor, dmBound);
 
   const arrowSpLeft = {
     id: createShapeId("sL" + spLeft.id),

@@ -4,7 +4,7 @@ export const SPACEX = 80;
 export const SPACEY = 40;
 export const OBJSIZE = 100;
 
-function cleanTrackingId(comment: string) {
+export function cleanTrackingId(comment: string) {
     //TrackingID:#[535f96e2]
     // const comment: string | null = obj.CustomAttributes.find(o => o.Field.FullName == 'Comment')?.Value as string;
     // console.log(comment);
@@ -25,10 +25,25 @@ function cleanTrackingId(comment: string) {
     return trackingId;
 }
 
+export function GetProperties(obj: any) {
+    const attributes: any[] = obj.CustomAttributes;
+    if (!attributes) return {};
+
+    // convert to Record<string, any>;
+    const props: Record<string, any> = {};
+    attributes.forEach((o) => {
+        const field = o.Field;
+        const fieldName = field.FullName;
+        const propValue = o.Value;
+        props[fieldName] = propValue;
+    });
+    return props;
+}
+
 export function GetTrackingId(obj: any) {
     //TrackingID:#[535f96e2]
     const attributes: any[] = obj.CustomAttributes;
-    const comment: string | null = attributes.find(
+    const comment: string | null = attributes?.find(
         (o) => o.Field.FullName == "Comment"
     )?.Value as string;
     // console.log(comment);
@@ -37,9 +52,12 @@ export function GetTrackingId(obj: any) {
 }
 
 export function GetName(obj: any): string {
+    if (!obj || !obj.CustomAttributes) return "";
+
     //TrackingID:#[535f96e2]
     const attributes: any[] = obj.CustomAttributes;
-    const value: string | null = attributes.find(
+
+    const value: string | null = attributes?.find(
         (o) => o.Field.FullName == "Name"
     )?.Value as string;
     return value ?? "";
@@ -58,7 +76,7 @@ export function GetHvacType(obj: any) {
     return ibType;
 }
 
-export function CalAlignedBounds(supplyObjs: any[], demandObjs: any[]): { sp: Box; dm: Box; separator: Box } {
+export function CalAlignedBounds(supplyObjs: any[], demandObjs: any[]): { sp: Box; dm: Box; separator: Box; } {
 
     const spS = CalSize(supplyObjs);
     const sp = new Box(0, 0, spS.w, spS.h);
@@ -88,7 +106,7 @@ export function CalAlignedBounds(supplyObjs: any[], demandObjs: any[]): { sp: Bo
 // export function
 
 // width : -o-o-o-
-function CalSize(objs: any[]): { w: number; h: number } {
+function CalSize(objs: any[]): { w: number; h: number; } {
     // calculate the total width of object for preparing the document
     const objCount = objs.length;
     let w = 0;
@@ -126,7 +144,7 @@ function CalSize(objs: any[]): { w: number; h: number } {
 }
 
 // width : [-o-o-]
-function CalBranchesSize(branchesObj: any): { w: number; h: number } {
+function CalBranchesSize(branchesObj: any): { w: number; h: number; } {
     const objs: any[][] = branchesObj.Branches;
 
     let w = 0;

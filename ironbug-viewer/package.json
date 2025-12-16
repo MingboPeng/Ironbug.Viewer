@@ -12,7 +12,10 @@
   "dependencies": {
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
-    "tldraw": "^3.6.0"
+    "tldraw": "^3.6.0",
+    "@ant-design/icons": "5.x",
+    "antd": "^5.27.4",
+    "antd-style": "^3.7.1"
   },
   "devDependencies": {
     "@eslint/js": "^9.15.0",
