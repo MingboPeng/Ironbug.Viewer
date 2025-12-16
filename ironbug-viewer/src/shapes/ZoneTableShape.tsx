@@ -29,9 +29,7 @@ import {
 interface ZoneTableData {
   key: string; //id
   name: string;
-  sizing: any;
-  airTerminal: any;
-  zoneEquipments: any[];
+  equipments: any[];
   attributes: any[];
 }
 
@@ -93,43 +91,9 @@ export class ZoneTableShapeUtil extends BaseBoxShapeUtil<ZoneTableShape> {
           ),
         },
         {
-          title: "Sizing",
-          dataIndex: "sizing",
-          key: "sizing",
-          render: (obj: any) => (
-            <Button
-              onClick={(e) => {
-                setSelectedRecord(obj);
-                setSelectedCell(obj);
-                setDrawerOpen(true);
-                e.stopPropagation();
-              }}
-            >
-              {GetHvacType(obj)}
-            </Button>
-          ),
-        },
-        {
-          title: "Air Terminal",
-          dataIndex: "airTerminal",
-          key: "airTerminal",
-          render: (obj: any) => (
-            <Button
-              onClick={(e) => {
-                setSelectedRecord(obj);
-                setSelectedCell(obj);
-                setDrawerOpen(true);
-                e.stopPropagation();
-              }}
-            >
-              {GetHvacType(obj)}
-            </Button>
-          ),
-        },
-        {
-          title: "Zone Equipments",
-          dataIndex: "zoneEquipments",
-          key: "zoneEquipments",
+          title: "HVAC Equipments",
+          dataIndex: "equipments",
+          key: "equipments",
           render: (objs: any[]) => (
             <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
               {objs?.map((obj: any, i: number) => (
@@ -223,7 +187,15 @@ export function LoadZoneTablePage(editor: Editor, sys: any) {
     ) as any[];
     const rooms = airloopBranches.flatMap((_) => _).filter((_) => IsZone(_));
 
-    const roomData = rooms.map((_) => GetZones(_));
+    // Get all the zones without airloops
+    const noLoopZones = sys.AirLoops.flatMap(
+      (loop: any) => loop.ThermalZones
+    ) as any[];
+
+    const allZones = [...noLoopZones, ...rooms];
+
+    // convert to display data
+    const roomData = allZones.map((_) => GetZones(_));
 
     editor.createShape({
       id: zoneGridShapeId,
@@ -247,18 +219,20 @@ export function LoadZoneTablePage(editor: Editor, sys: any) {
 function GetZones(room: any) {
   // console.log("GetZones", room);
   const airTerminal = room.AirTerminal;
-  const sizing = room.SizingZone;
-  // const attributes = room.CustomAttributes;
+
+  // get all equipments from AirTerminal and ZoneEquipments
+  const isAirTerminalBeforeZoneEquipments: boolean =
+    room.IBProperties?.IsAirTerminalBeforeZoneEquipments ?? true;
+
+  const allEquips = isAirTerminalBeforeZoneEquipments
+    ? [airTerminal, ...room.ZoneEquipments]
+    : [...room.ZoneEquipments, airTerminal];
 
   const roomData = {
     name: room,
     key: GetTrackingId(room),
-    // attributes: GetProperties(obj),
-    airTerminal: airTerminal,
-    sizing: sizing,
-    // zoneEquipments: room.ZoneEquipments,
+    equipments: allEquips,
   } as ZoneTableData;
-  // console.log("GetZonesData", roomData);
   return roomData;
 }
 
