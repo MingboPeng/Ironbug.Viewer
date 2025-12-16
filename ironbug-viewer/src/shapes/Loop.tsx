@@ -596,16 +596,10 @@ function _debugDrawBound(editor: Editor, bound: Box) {
 }
 
 export function DrawLoop(editor: Editor, loop: any) {
-  _currentLoopId = GetTrackingId(loop);
-
-  // check if the current page has any existing shapes, if yes, create a new page
-  CheckCreatePage(editor);
-
-  //update page name
-  const page = editor.getCurrentPage();
-
-  const pageName = GetHvacType(loop) + " " + _currentLoopId;
-  // editor.renamePage(page, pageName);
+  if (!loop) return;
+  // there is no components in both supply and demand list, skip
+  if (loop.SupplyComponents.length === 0 && loop.DemandComponents.length === 0)
+    return;
 
   const {
     sp: spBound,
@@ -613,95 +607,113 @@ export function DrawLoop(editor: Editor, loop: any) {
     separator: seperatorBound,
   } = CalAlignedBounds(loop.SupplyComponents, loop.DemandComponents);
 
+  _currentLoopId = GetTrackingId(loop);
+
+  // check if the current page has any existing shapes, if yes, create a new page
+  CheckCreatePage(editor);
+
+  //update page name
+  const page = editor.getCurrentPage();
+  const loopType = GetHvacType(loop);
+  const pageName = loopType + " " + _currentLoopId;
+
   const loopBound = Box.From(spBound).union(dmBound).union(seperatorBound);
   page.name = pageName;
   const zoomToBound = { ...loopBound, h: 460, w: loopBound.width + 400 };
   editor.zoomToBounds(zoomToBound);
-  // console.log("page", zoomToBound);
   editor.updatePage(page);
 
-  const spArrs = DrawSupplyLoop(
-    editor,
-    loop.SupplyComponents,
-    spBound,
-    loopBound
-  );
-  const dmArrs = DrawDemandLoop(
-    editor,
-    loop.DemandComponents,
-    dmBound,
-    loopBound
-  );
-  const spLeft = spArrs[0];
-  const spRight = spArrs[spArrs.length - 1];
-  const dmLeft = dmArrs[0];
-  const dmRight = dmArrs[dmArrs.length - 1];
+  //  Draw Supply side connections
+  if (loop.SupplyComponents.length > 0) {
+    const spArrs = DrawSupplyLoop(
+      editor,
+      loop.SupplyComponents,
+      spBound,
+      loopBound
+    );
 
-  const separatorShape = {
-    type: "IBLoopShape",
-    x: seperatorBound.x,
-    y: seperatorBound.y,
-    props: {
-      w: seperatorBound.w,
-      h: seperatorBound.h,
-      ibObj: loop,
-    },
-  };
-  editor.createShape(separatorShape);
+    const spLeft = spArrs[0];
+    const spRight = spArrs[spArrs.length - 1];
 
-  const arrowSpLeft = {
-    id: createShapeId("sL" + spLeft.id),
-    type: "arrow",
-    x: seperatorBound.minX,
-    y: seperatorBound.midY,
-    props: {
-      start: { x: 0, y: 0 },
-      end: { x: 0, y: spLeft.y - seperatorBound.midY },
-      arrowheadStart: "none",
-      arrowheadEnd: "none",
-    },
-  } as TLArrowShape;
+    const arrowSpLeft = {
+      id: createShapeId("sL" + spLeft.id),
+      type: "arrow",
+      x: seperatorBound.minX,
+      y: seperatorBound.midY,
+      props: {
+        start: { x: 0, y: 0 },
+        end: { x: 0, y: spLeft.y - seperatorBound.midY },
+        arrowheadStart: "none",
+        arrowheadEnd: "none",
+      },
+    } as TLArrowShape;
 
-  const arrowSpRight = {
-    id: createShapeId("sR" + spRight.id),
-    type: "arrow",
-    x: spBound.maxX,
-    y: spRight.y,
-    props: {
-      start: { x: 0, y: 0 },
-      end: { x: 0, y: seperatorBound.midY - spRight.y },
-      arrowheadStart: "none",
-    },
-  } as TLArrowShape;
+    const arrowSpRight = {
+      id: createShapeId("sR" + spRight.id),
+      type: "arrow",
+      x: spBound.maxX,
+      y: spRight.y,
+      props: {
+        start: { x: 0, y: 0 },
+        end: { x: 0, y: seperatorBound.midY - spRight.y },
+        arrowheadStart: "none",
+      },
+    } as TLArrowShape;
 
-  editor.createShape(arrowSpLeft);
-  editor.createShape(arrowSpRight);
+    editor.createShape(arrowSpLeft);
+    editor.createShape(arrowSpRight);
+  }
 
-  const arrowDmRight = {
-    id: createShapeId("dR" + dmRight.id),
-    type: "arrow",
-    x: seperatorBound.maxX,
-    y: seperatorBound.midY,
-    props: {
-      start: { x: 0, y: 0 },
-      end: { x: 0, y: dmRight.y - seperatorBound.midY },
-      arrowheadStart: "none",
-      arrowheadEnd: "none",
-    },
-  } as TLArrowShape;
+  // Draw Demand side connections
+  if (loop.DemandComponents.length > 0) {
+    const dmArrs = DrawDemandLoop(
+      editor,
+      loop.DemandComponents,
+      dmBound,
+      loopBound
+    );
 
-  const arrowDmLeft = {
-    id: createShapeId("dL" + dmLeft.id),
-    type: "arrow",
-    x: seperatorBound.minX,
-    y: dmLeft.y,
-    props: {
-      start: { x: 0, y: 0 },
-      end: { x: 0, y: -(dmLeft.y - seperatorBound.midY) },
-      arrowheadStart: "none",
-    },
-  } as TLArrowShape;
+    const dmLeft = dmArrs[0];
+    const dmRight = dmArrs[dmArrs.length - 1];
 
-  editor.createShape(arrowDmLeft);
-  editor.createShape(arrowDmRight);
+    const separatorShape = {
+      type: "IBLoopShape",
+      x: seperatorBound.x,
+      y: seperatorBound.y,
+      props: {
+        w: seperatorBound.w,
+        h: seperatorBound.h,
+        ibObj: loop,
+      },
+    };
+    editor.createShape(separatorShape);
+
+    const arrowDmRight = {
+      id: createShapeId("dR" + dmRight.id),
+      type: "arrow",
+      x: seperatorBound.maxX,
+      y: seperatorBound.midY,
+      props: {
+        start: { x: 0, y: 0 },
+        end: { x: 0, y: dmRight.y - seperatorBound.midY },
+        arrowheadStart: "none",
+        arrowheadEnd: "none",
+      },
+    } as TLArrowShape;
+
+    const arrowDmLeft = {
+      id: createShapeId("dL" + dmLeft.id),
+      type: "arrow",
+      x: seperatorBound.minX,
+      y: dmLeft.y,
+      props: {
+        start: { x: 0, y: 0 },
+        end: { x: 0, y: -(dmLeft.y - seperatorBound.midY) },
+        arrowheadStart: "none",
+      },
+    } as TLArrowShape;
+
+    editor.createShape(arrowDmLeft);
+    editor.createShape(arrowDmRight);
+  }
 }
