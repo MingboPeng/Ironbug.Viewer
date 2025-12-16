@@ -19,7 +19,7 @@ import { useCallback, useEffect, useState } from "react";
 import { IBShape, IBShapeUtil } from "./../shapes/LoopObjShape";
 import IB_Sys07 from "./../assets/HVAC/Sys07_VAV Reheat.json";
 import { DrawDemandLoop, DrawLoop, DrawSupplyLoop } from "../shapes/Loop";
-import { IBLoopShapeUtil } from "../shapes/LoopShape";
+import { IBLoopShape, IBLoopShapeUtil } from "../shapes/LoopShape";
 import {
   LoadZoneTablePage,
   ZoneTableShapeUtil,
@@ -215,13 +215,21 @@ export default function ShapeWithTldrawStylesExample() {
     useReactor(
       "change selection",
       () => {
-        const shape = editor
-          .getSelectedShapes()
-          .find((shape) => shape.type === "ibshape") as IBShape;
-        if (shape?.props?.ibObj) {
-          setSelectedData(shape.props.ibObj || null);
-          setDrawerOpen(true);
-        } else {
+        try {
+          const selectedShape = editor.getSelectedShapes()[0];
+          if (selectedShape.type === "ibshape") {
+            const shape = selectedShape as IBShape;
+            setSelectedData(shape.props.ibObj || null);
+            setDrawerOpen(true);
+          } else if (selectedShape.type === "IBLoopShape") {
+            const shape = selectedShape as IBLoopShape;
+            setSelectedData(shape.props.ibObj || null);
+            setDrawerOpen(true);
+          } else {
+            setSelectedData(null);
+            setDrawerOpen(false);
+          }
+        } catch (error) {
           setSelectedData(null);
           setDrawerOpen(false);
         }

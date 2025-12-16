@@ -23,21 +23,32 @@ export const PropertiesDrawer = ({
 
     const objTitle = GetHvacType(data);
     const attributes = data.CustomAttributes as any[];
-    const children = data.Children as any[];
+    const children = data.Children ?? ([] as any[]);
+    const sizingSystem = data.SizingSystem; // loop
+    const sizingZone = data.SizingZone; // zone
+    if (sizingSystem) {
+      children.push(sizingSystem);
+    }
+    if (sizingZone) {
+      children.push(sizingZone);
+    }
 
     if (attributes || (children && children.length > 0)) {
       return (
         <Form layout="vertical">
           <h4 style={{ marginTop: 0, marginBottom: 8 }}>{objTitle}</h4>
-          {attributes?.map((attr: any, i: number) => (
-            <Form.Item
-              key={`attr-${i}`}
-              label={attr.Field?.FullName}
-              style={{ marginBottom: 12 }}
-            >
-              <Input value={String(attr.Value)} readOnly />
-            </Form.Item>
-          ))}
+          {attributes?.map((attr: any, i: number) => {
+            if (attr.Field?.FullName === "Comment") return null;
+            return (
+              <Form.Item
+                key={`attr-${i}`}
+                label={attr.Field?.FullName}
+                style={{ marginBottom: 12 }}
+              >
+                <Input value={String(attr.Value)} readOnly />
+              </Form.Item>
+            );
+          })}
           {children?.map((child: any, cIndex: number) => {
             const childAttrs = child.CustomAttributes as any[];
             if (!childAttrs || childAttrs.length === 0) return null;
@@ -47,15 +58,18 @@ export const PropertiesDrawer = ({
                 <h4 style={{ marginTop: 16, marginBottom: 8 }}>
                   {GetHvacType(child)}
                 </h4>
-                {childAttrs.map((attr: any, i: number) => (
-                  <Form.Item
-                    key={`child-${cIndex}-attr-${i}`}
-                    label={attr.Field?.FullName}
-                    style={{ marginBottom: 12 }}
-                  >
-                    <Input value={String(attr.Value)} readOnly />
-                  </Form.Item>
-                ))}
+                {childAttrs.map((attr: any, i: number) => {
+                  if (attr.Field?.FullName === "Comment") return null;
+                  return (
+                    <Form.Item
+                      key={`child-${cIndex}-attr-${i}`}
+                      label={attr.Field?.FullName}
+                      style={{ marginBottom: 12 }}
+                    >
+                      <Input value={String(attr.Value)} readOnly />
+                    </Form.Item>
+                  );
+                })}
               </div>
             );
           })}

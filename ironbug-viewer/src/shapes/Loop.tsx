@@ -644,6 +644,7 @@ export function DrawLoop(editor: Editor, loop: any) {
     props: {
       w: seperatorBound.w,
       h: seperatorBound.h,
+      ibObj: loop,
     },
   };
   editor.createShape(separatorShape);
