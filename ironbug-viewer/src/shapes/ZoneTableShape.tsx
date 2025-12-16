@@ -130,16 +130,21 @@ export class ZoneTableShapeUtil extends BaseBoxShapeUtil<ZoneTableShape> {
           title: "Zone Equipments",
           dataIndex: "zoneEquipments",
           key: "zoneEquipments",
-          render: (text: string, record: ZoneTableData) => (
-            <Button
-              onClick={(e) => {
-                setSelectedRecord(record);
-                setDrawerOpen(true);
-                e.stopPropagation();
-              }}
-            >
-              {text}
-            </Button>
+          render: (objs: any[]) => (
+            <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+              {objs?.map((obj: any, i: number) => (
+                <Button
+                  key={i}
+                  onClick={(e) => {
+                    setSelectedCell(obj);
+                    setDrawerOpen(true);
+                    e.stopPropagation();
+                  }}
+                >
+                  {GetHvacType(obj)}
+                </Button>
+              ))}
+            </div>
           ),
         },
       ],
