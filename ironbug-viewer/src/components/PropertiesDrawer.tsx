@@ -39,13 +39,21 @@ export const PropertiesDrawer = ({
           <h4 style={{ marginTop: 0, marginBottom: 8 }}>{objTitle}</h4>
           {attributes?.map((attr: any, i: number) => {
             if (attr.Field?.FullName === "Comment") return null;
+            const isObject =
+              typeof attr.Value === "object" && attr.Value !== null;
             return (
               <Form.Item
                 key={`attr-${i}`}
                 label={attr.Field?.FullName}
                 style={{ marginBottom: 12 }}
               >
-                <Input value={String(attr.Value)} readOnly />
+                <Input
+                  value={
+                    isObject ? GetHvacType(attr.Value) : String(attr.Value)
+                  }
+                  readOnly
+                  disabled={isObject}
+                />
               </Form.Item>
             );
           })}
@@ -60,13 +68,23 @@ export const PropertiesDrawer = ({
                 </h4>
                 {childAttrs.map((attr: any, i: number) => {
                   if (attr.Field?.FullName === "Comment") return null;
+                  const isObject =
+                    typeof attr.Value === "object" && attr.Value !== null;
                   return (
                     <Form.Item
                       key={`child-${cIndex}-attr-${i}`}
                       label={attr.Field?.FullName}
                       style={{ marginBottom: 12 }}
                     >
-                      <Input value={String(attr.Value)} readOnly />
+                      <Input
+                        value={
+                          isObject
+                            ? GetHvacType(attr.Value)
+                            : String(attr.Value)
+                        }
+                        readOnly
+                        disabled={isObject}
+                      />
                     </Form.Item>
                   );
                 })}
