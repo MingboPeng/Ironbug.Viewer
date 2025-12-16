@@ -18,6 +18,7 @@ import "tldraw/tldraw.css";
 import { useCallback, useEffect, useState } from "react";
 import { IBShape, IBShapeUtil } from "./../shapes/LoopObjShape";
 import IB_Sys07 from "./../assets/HVAC/Sys07_VAV Reheat.json";
+import zoneEquipments from "./../assets/HVAC/ZoneEquipments.json";
 import { DrawDemandLoop, DrawLoop, DrawSupplyLoop } from "../shapes/Loop";
 import { IBLoopShape, IBLoopShapeUtil } from "../shapes/LoopShape";
 import {
@@ -131,18 +132,16 @@ function loadSystem(editor: Editor, sys: any) {
   LoadZoneTablePage(editor, sys);
 
   // const sys = IB_Sys07;
-  const airLoops: any[] = sys.AirLoops;
-  const plantLoops: any[] = sys.PlantLoops;
+  const airLoops: any[] = sys.AirLoops ?? [];
+  const plantLoops: any[] = sys.PlantLoops ?? [];
 
   airLoops.forEach((_) => {
-    const loop = _;
-    DrawLoop(editor, loop);
+    DrawLoop(editor, _);
   });
 
   // const testPlant = [plantLoops[1]];
   plantLoops.forEach((_) => {
-    const loop = _;
-    DrawLoop(editor, loop);
+    DrawLoop(editor, _);
   });
 
   // switch to the first page
@@ -192,7 +191,7 @@ export default function ShapeWithTldrawStylesExample() {
   function OnMountLoading(editor: Editor) {
     const wv2 = window.parent.chrome?.webview;
     if (typeof wv2 === "undefined") {
-      loadSystem(editor, IB_Sys07);
+      loadSystem(editor, zoneEquipments);
     } else {
       setEditor(editor);
       wv2.postMessage("IBViewer loaded!");
