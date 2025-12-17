@@ -397,7 +397,7 @@ function DrawLoopBranches(
   const y = baseY;
   const supplyDir = isSupplySide ? -1 : 1;
 
-  console.log("DrawLoopBranches", x, y, branchesComponent);
+  // console.log("DrawLoopBranches", x, y, branchesComponent);
 
   const branches: any[][] = branchesComponent.Branches;
   const leftArrows: TLArrowShape[] = [];
@@ -494,7 +494,7 @@ export function DrawSupplyLoop(
     if (ibType === "PlantLoopBranches") {
       const branchX = x + space;
       const branchY = y;
-      console.log("PlantLoopBranches", branchX, branchY);
+      // console.log("PlantLoopBranches", branchX, branchY);
       const leftRightLines = DrawLoopBranches(
         editor,
         obj,
@@ -567,16 +567,16 @@ export function DrawDemandLoop(
   return arrows;
 }
 
-function CheckCreatePage(editor: Editor) {
-  const currentIds = editor.getCurrentPageShapeIds();
-  const count = currentIds.size;
-  if (count > 0) {
+function CheckCreatePage(editor: Editor, loopId: string, loopName: string) {
+  const pageId = PageRecordType.createId(loopId);
+  // check pageId exists
+  const page = editor.getPage(pageId);
+  if (!page) {
     // add a new page for the new loop
-    const pageId = PageRecordType.createId(_currentLoopId);
-    editor.createPage({ name: "tempPageName", id: pageId });
+    editor.createPage({ name: loopName, id: pageId });
     editor.setCurrentPage(pageId);
   } else {
-    // current page is empty
+    editor.setCurrentPage(pageId);
   }
 }
 
@@ -608,20 +608,14 @@ export function DrawLoop(editor: Editor, loop: any) {
   } = CalAlignedBounds(loop.SupplyComponents, loop.DemandComponents);
 
   _currentLoopId = GetTrackingId(loop);
-
-  // check if the current page has any existing shapes, if yes, create a new page
-  CheckCreatePage(editor);
-
-  //update page name
-  const page = editor.getCurrentPage();
   const loopType = GetHvacType(loop);
   const pageName = loopType + " " + _currentLoopId;
+  // check if the current page has any existing shapes, if yes, create a new page
+  CheckCreatePage(editor, _currentLoopId, pageName);
 
   const loopBound = Box.From(spBound).union(dmBound).union(seperatorBound);
-  page.name = pageName;
   const zoomToBound = { ...loopBound, h: 460, w: loopBound.width + 400 };
   editor.zoomToBounds(zoomToBound);
-  editor.updatePage(page);
 
   //  Draw Supply side connections
   if (loop.SupplyComponents.length > 0) {

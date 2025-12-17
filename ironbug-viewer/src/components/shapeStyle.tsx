@@ -12,6 +12,12 @@ import {
   hardResetEditor,
   Box,
   TLUiEventHandler,
+  TLComponents,
+  TldrawUiMenuItem,
+  DefaultMainMenu,
+  TldrawUiMenuGroup,
+  DefaultMainMenuContent,
+  TldrawUiMenuSubmenu,
 } from "tldraw";
 import "tldraw/tldraw.css";
 
@@ -122,6 +128,15 @@ import { PropertiesDrawer } from "./PropertiesDrawer";
 function loadSystem(editor: Editor, sys: any) {
   // delete all default pages
   const currentPages = editor.getPages();
+
+  // create a dummy page and delete the rest
+  const dummyPageId = PageRecordType.createId("dummyPage");
+  editor.createPage({
+    name: "dummyPage",
+    id: dummyPageId,
+  });
+  editor.setCurrentPage(dummyPageId);
+
   for (let i = 0; i < currentPages.length; i++) {
     const p = currentPages[i];
     // console.log("deleting page:", p);
@@ -144,9 +159,12 @@ function loadSystem(editor: Editor, sys: any) {
     DrawLoop(editor, _);
   });
 
+  // delete dummy page
+  editor.deletePage(dummyPageId);
+
   // switch to the first page
   const firstPage = editor.getPages()[0];
-  if (firstPage !== undefined) {
+  if (firstPage) {
     editor.setCurrentPage(firstPage);
   }
 }
@@ -191,7 +209,7 @@ export default function ShapeWithTldrawStylesExample() {
   function OnMountLoading(editor: Editor) {
     const wv2 = window.parent.chrome?.webview;
     if (typeof wv2 === "undefined") {
-      loadSystem(editor, zoneEquipments);
+      loadSystem(editor, IB_Sys07);
     } else {
       setEditor(editor);
       wv2.postMessage("IBViewer loaded!");
@@ -241,14 +259,78 @@ export default function ShapeWithTldrawStylesExample() {
     return null;
   }
 
+  function CustomMainMenu() {
+    const editor = useEditor();
+
+    return (
+      <DefaultMainMenu>
+        <TldrawUiMenuGroup id="ibMenu">
+          <TldrawUiMenuItem
+            id="openIb"
+            label="Open Ironbug HVAC JSON"
+            readonlyOk
+            onSelect={() => {
+              const input = document.createElement("input");
+              input.type = "file";
+              input.accept = ".json";
+              input.onchange = (e: any) => {
+                const file = e.target.files[0];
+                if (!file) return;
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                  const content = e.target?.result;
+                  if (typeof content === "string") {
+                    try {
+                      const json = JSON.parse(content);
+                      loadSystem(editor, json);
+                    } catch (error) {
+                      console.error("Error parsing JSON:", error);
+                    }
+                  }
+                };
+                reader.readAsText(file);
+              };
+              input.click();
+            }}
+          />
+          <TldrawUiMenuSubmenu id="ibSamples" label="HVAC Samples">
+            <TldrawUiMenuItem
+              id="sys07"
+              label="Sys07 VAV Reheat"
+              readonlyOk
+              onSelect={() => {
+                if (editor) {
+                  loadSystem(editor, IB_Sys07);
+                }
+              }}
+            />
+            <TldrawUiMenuItem
+              id="zoneEquipments"
+              label="zoneEquipments"
+              readonlyOk
+              onSelect={() => {
+                if (editor) {
+                  loadSystem(editor, zoneEquipments);
+                }
+              }}
+            />
+          </TldrawUiMenuSubmenu>
+        </TldrawUiMenuGroup>
+        <DefaultMainMenuContent />
+      </DefaultMainMenu>
+    );
+  }
+
+  const components: TLComponents = {
+    MainMenu: CustomMainMenu,
+    StylePanel: OsPropertyPanel,
+  };
   return (
     <div style={{ position: "fixed", inset: 0 }}>
       <Tldraw
         // persistenceKey="ironbug_viewer"
         shapeUtils={[IBShapeUtil, IBLoopShapeUtil, ZoneTableShapeUtil]}
-        components={{
-          StylePanel: OsPropertyPanel,
-        }}
+        components={components}
         onMount={OnMountLoading}
         // onUiEvent={handleUiEvent}
       />

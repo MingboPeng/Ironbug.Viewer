@@ -166,56 +166,59 @@ export class ZoneTableShapeUtil extends BaseBoxShapeUtil<ZoneTableShape> {
 }
 
 export function LoadZoneTablePage(editor: Editor, sys: any) {
-  const zoneGridShapeId = createShapeId("ZoneTableShape");
-
-  if (!editor.getShape(zoneGridShapeId)) {
-    // update page name
-    // const pageId = PageRecordType.createId("ZoneTableShape");
-    // editor.createPage({ name: "Zone Table", id: pageId });
-    // editor.setCurrentPage(pageId);
-
-    const page = editor.getCurrentPage();
-
-    // page.id = createShapeId("ZoneTablePage");
-    page.name = "Zone Table";
-    page.meta = { zoneTable: true };
-    editor.updatePage(page);
-
-    // Get all the airloop branches
-    const airloopBranches = sys.AirLoops.flatMap((loop: any) =>
-      loop.DemandComponents.flatMap((comp: any) => comp.Branches)
-    ) as any[];
-    const rooms = airloopBranches.flatMap((_) => _).filter((_) => IsZone(_));
-
-    // Get all the zones without airloops
-    const noLoopZones = sys.AirLoops.flatMap(
-      (loop: any) => loop.ThermalZones
-    ) as any[];
-
-    const allZones = [...noLoopZones, ...rooms];
-
-    // convert to display data
-    const roomData = allZones.map((_) => GetZones(_));
-
-    editor.createShape({
-      id: zoneGridShapeId,
-      type: "ZoneTableShape",
-      props: {
-        w: 800,
-        h: 600,
-        rowData: roomData,
-      },
+  const pageId = PageRecordType.createId("ZoneTable");
+  // check pageId exists
+  const page = editor.getPage(pageId);
+  if (page) {
+    const pageShapeIDs = editor.getPageShapeIds(pageId);
+    // console.log("pageShapeIDs", pageShapeIDs);
+    pageShapeIDs.forEach((_) => {
+      editor.deleteShape(_);
     });
-
-    // editor.select(zoneGridShapeId);
-    editor.zoomToBounds({
-      x: 0,
-      y: 0,
-      w: 800 + 400,
-      h: 600,
+  } else {
+    // add a new page for the new loop
+    editor.createPage({
+      name: "Zone Table",
+      id: pageId,
+      meta: { zoneTable: true },
     });
   }
+
+  editor.setCurrentPage(pageId);
+
+  // Get all the airloop branches
+  const airloopBranches = sys.AirLoops.flatMap((loop: any) =>
+    loop.DemandComponents.flatMap((comp: any) => comp.Branches)
+  ) as any[];
+  const rooms = airloopBranches.flatMap((_) => _).filter((_) => IsZone(_));
+
+  // Get all the zones without airloops
+  const noLoopZones = (
+    sys.AirLoops.flatMap((loop: any) => loop.ThermalZones) as any[]
+  ).filter((_) => IsZone(_));
+
+  const allZones = [...noLoopZones, ...rooms];
+  const zoneGridShapeId = createShapeId("ZoneTableShape");
+  // convert to display data
+  const roomData = allZones.map((_) => GetZones(_));
+  editor.createShape({
+    id: zoneGridShapeId,
+    type: "ZoneTableShape",
+    props: {
+      w: 800,
+      h: 600,
+      rowData: roomData,
+    },
+  });
+
+  editor.zoomToBounds({
+    x: 0,
+    y: 0,
+    w: 800 + 400,
+    h: 600,
+  });
 }
+
 function GetZones(room: any) {
   // console.log("GetZones", room);
   const airTerminal = room.AirTerminal;
@@ -224,19 +227,22 @@ function GetZones(room: any) {
   const isAirTerminalBeforeZoneEquipments: boolean =
     room.IBProperties?.IsAirTerminalBeforeZoneEquipments ?? true;
 
+  const zoneEquipments = room.ZoneEquipments ?? [];
+
   const allEquips = isAirTerminalBeforeZoneEquipments
-    ? [airTerminal, ...room.ZoneEquipments]
-    : [...room.ZoneEquipments, airTerminal];
+    ? [airTerminal, ...zoneEquipments]
+    : [...zoneEquipments, airTerminal];
 
   const roomData = {
     name: room,
     key: GetTrackingId(room),
-    equipments: allEquips,
+    equipments: allEquips.filter((_) => _ !== undefined),
   } as ZoneTableData;
   return roomData;
 }
 
 function IsZone(obj: any) {
+  if (!obj) return false;
   // Ironbug.HVAC.BaseClass.IB_ThermalZone, Ironbug.HVAC
   let type = obj.$type;
   return type === "Ironbug.HVAC.BaseClass.IB_ThermalZone, Ironbug.HVAC";
