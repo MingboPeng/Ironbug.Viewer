@@ -18,10 +18,11 @@ import {
   TldrawUiMenuGroup,
   DefaultMainMenuContent,
   TldrawUiMenuSubmenu,
+  useValue,
 } from "tldraw";
 import "tldraw/tldraw.css";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { IBShape, IBShapeUtil } from "./../shapes/LoopObjShape";
 import IB_Sys07 from "./../assets/HVAC/Sys07_VAV Reheat.json";
 import zoneEquipments from "./../assets/HVAC/ZoneEquipments.json";
@@ -32,6 +33,80 @@ import {
   ZoneTableShapeUtil,
 } from "../shapes/ZoneTableShape";
 import { PropertiesDrawer } from "./PropertiesDrawer";
+import { EditorProvider } from "./PropertyPanel";
+
+function InspectorPanel() {
+  const editor = useEditor();
+
+  // Get the currently selected shapes, updates reactively
+  const selectedShapes = useValue(
+    "selected shapes",
+    () => editor.getSelectedShapes(),
+    [editor]
+  );
+
+  // Get shared styles when multiple shapes are selected
+  const sharedStyles = useValue(
+    "shared styles",
+    () => {
+      if (selectedShapes.length <= 1) return null;
+      return editor.getSharedStyles();
+    },
+    [editor, selectedShapes]
+  );
+
+  // Get bindings involving the selected shape (only for single selection)
+  const bindings = useValue(
+    "bindings",
+    () => {
+      if (selectedShapes.length !== 1) return [];
+      return editor.getBindingsInvolvingShape(selectedShapes[0].id);
+    },
+    [editor, selectedShapes]
+  );
+
+  const selectedShape = selectedShapes.length === 1 ? selectedShapes[0] : null;
+
+  if (selectedShapes.length === 0) {
+    return (
+      <div>
+        <h3>Inspector</h3>
+        <p>No shape selected</p>
+      </div>
+    );
+  }
+
+  // Single shape selected
+  return (
+    <div style={{ width: 300 }}>
+      <h3>Inspector</h3>
+      <div className="inspector-section">
+        {Object.entries(selectedShape!).map(([key, value]) => {
+          if (key === "props") return null; // Skip props, we'll show them separately
+          return <p>shape selected</p>;
+        })}
+      </div>
+
+      {/* {selectedShape!.props && Object.keys(selectedShape!.props).length > 0 && (
+				<div className="inspector-section">
+					<h4>Shape Props</h4>
+					{Object.entries(selectedShape!.props).map(([key, value]) => (
+						<PropertyRow key={key} name={key} value={value} path={`props.${key}`} />
+					))}
+				</div>
+			)} */}
+
+      {/* {bindings.length > 0 && (
+				<div className="inspector-section">
+					<h4>Bindings ({bindings.length})</h4>
+					{bindings.map((binding) => (
+						<BindingRow key={binding.id} binding={binding} selectedShapeId={selectedShape!.id} />
+					))}
+				</div>
+			)} */}
+    </div>
+  );
+}
 
 // function OsPropertyPanel() {
 //   const editor = useEditor();
@@ -125,7 +200,11 @@ import { PropertiesDrawer } from "./PropertiesDrawer";
 
 // }
 
-function loadSystem(editor: Editor, sys: any) {
+function loadSystem(
+  editor: Editor,
+  sys: any,
+  setSelectedData?: ((data: any) => void) | null
+) {
   // delete all default pages
   const currentPages = editor.getPages();
 
@@ -144,7 +223,7 @@ function loadSystem(editor: Editor, sys: any) {
   }
 
   // create new pages for zone table
-  LoadZoneTablePage(editor, sys);
+  LoadZoneTablePage(editor, sys, setSelectedData);
 
   // const sys = IB_Sys07;
   const airLoops: any[] = sys.AirLoops ?? [];
@@ -170,9 +249,10 @@ function loadSystem(editor: Editor, sys: any) {
 }
 
 export default function ShapeWithTldrawStylesExample() {
+  // const [editor, setEditor] = useState<Editor | null>(null);
   const [editor, setEditor] = useState<Editor>();
   // const [system, setSystem] = useState<any>(null);
-  const [drawerOpen, setDrawerOpen] = useState(false);
+  // const [drawerOpen, setDrawerOpen] = useState(false);
   const [selectedData, setSelectedData] = useState<any>(null);
 
   // setup addEventListener
@@ -187,7 +267,7 @@ export default function ShapeWithTldrawStylesExample() {
         // console.log("Data received:", json);
         // setSystem(json);
         if (editor) {
-          loadSystem(editor, json);
+          loadSystem(editor, json, setSelectedData);
         }
       }
     });
@@ -209,7 +289,7 @@ export default function ShapeWithTldrawStylesExample() {
   function OnMountLoading(editor: Editor) {
     const wv2 = window.parent.chrome?.webview;
     if (typeof wv2 === "undefined") {
-      loadSystem(editor, IB_Sys07);
+      loadSystem(editor, IB_Sys07, setSelectedData);
     } else {
       setEditor(editor);
       wv2.postMessage("IBViewer loaded!");
@@ -227,28 +307,33 @@ export default function ShapeWithTldrawStylesExample() {
     // );
   }
 
-  function OsPropertyPanel() {
+  const OsPropertyPanel = useCallback(() => {
     const editor = useEditor();
     useReactor(
       "change selection",
       () => {
         try {
-          const selectedShape = editor.getSelectedShapes()[0];
+          const slectedShapes = editor.getSelectedShapes();
+          if (slectedShapes.length === 0) return;
+          const selectedShape = slectedShapes[0];
           if (selectedShape.type === "ibshape") {
             const shape = selectedShape as IBShape;
             setSelectedData(shape.props.ibObj || null);
-            setDrawerOpen(true);
+            // setDrawerOpen(true);
           } else if (selectedShape.type === "IBLoopShape") {
             const shape = selectedShape as IBLoopShape;
             setSelectedData(shape.props.ibObj || null);
-            setDrawerOpen(true);
+            // setDrawerOpen(true);
+          } else if (selectedShape.type === "ZoneTableShape") {
+            // console.log("ZoneTableShape selected");
+            // do nothing
           } else {
             setSelectedData(null);
-            setDrawerOpen(false);
+            // setDrawerOpen(false);
           }
         } catch (error) {
           setSelectedData(null);
-          setDrawerOpen(false);
+          // setDrawerOpen(false);
         }
       },
       [editor]
@@ -257,9 +342,9 @@ export default function ShapeWithTldrawStylesExample() {
     // if (!styles) return null;
 
     return null;
-  }
+  }, []);
 
-  function CustomMainMenu() {
+  const CustomMainMenu = useCallback(() => {
     const editor = useEditor();
 
     return (
@@ -282,7 +367,7 @@ export default function ShapeWithTldrawStylesExample() {
                   if (typeof content === "string") {
                     try {
                       const json = JSON.parse(content);
-                      loadSystem(editor, json);
+                      loadSystem(editor, json, setSelectedData);
                     } catch (error) {
                       console.error("Error parsing JSON:", error);
                     }
@@ -300,7 +385,7 @@ export default function ShapeWithTldrawStylesExample() {
               readonlyOk
               onSelect={() => {
                 if (editor) {
-                  loadSystem(editor, IB_Sys07);
+                  loadSystem(editor, IB_Sys07, setSelectedData);
                 }
               }}
             />
@@ -310,7 +395,7 @@ export default function ShapeWithTldrawStylesExample() {
               readonlyOk
               onSelect={() => {
                 if (editor) {
-                  loadSystem(editor, zoneEquipments);
+                  loadSystem(editor, zoneEquipments, setSelectedData);
                 }
               }}
             />
@@ -319,27 +404,87 @@ export default function ShapeWithTldrawStylesExample() {
         <DefaultMainMenuContent />
       </DefaultMainMenu>
     );
-  }
+  }, []);
 
-  const components: TLComponents = {
-    MainMenu: CustomMainMenu,
-    StylePanel: OsPropertyPanel,
-  };
+  const getPropertyPanel = useCallback(() => {
+    // const editor = useEditor();
+    return (
+      <div style={{ margin: 10 }}>
+        <h4>Properties</h4>
+        {/* <div>JSON.stringify(selectedData)</div> */}
+        {/* <div>{JSON.stringify(selectedData, null, 2)}</div> */}
+        {selectedData && (
+          <PropertiesDrawer
+            // open={drawerOpen}
+            // onClose={() => setDrawerOpen(false)}
+            data={selectedData}
+            // mask={false}
+          />
+        )}
+      </div>
+    );
+  }, [selectedData]);
+
+  const components: TLComponents = useMemo(
+    () => ({
+      MainMenu: CustomMainMenu,
+      StylePanel: OsPropertyPanel,
+    }),
+    [CustomMainMenu, OsPropertyPanel]
+  );
+
   return (
-    <div style={{ position: "fixed", inset: 0 }}>
-      <Tldraw
-        // persistenceKey="ironbug_viewer"
-        shapeUtils={[IBShapeUtil, IBLoopShapeUtil, ZoneTableShapeUtil]}
-        components={components}
-        onMount={OnMountLoading}
-        // onUiEvent={handleUiEvent}
-      />
-      <PropertiesDrawer
+    <div
+      style={{
+        display: "flex",
+        height: "100vh",
+        width: "100%",
+      }}
+    >
+      <div
+        style={{
+          flex: 1,
+          height: "100vh",
+          position: "absolute",
+          inset: "0 300px 0 0",
+        }}
+      >
+        <Tldraw
+          // persistenceKey="ironbug_viewer"
+          shapeUtils={[IBShapeUtil, IBLoopShapeUtil, ZoneTableShapeUtil]}
+          components={components}
+          onMount={OnMountLoading}
+          // onUiEvent={handleUiEvent}
+        />
+      </div>
+
+      <div
+        style={{
+          position: "absolute",
+          width: 300,
+          height: "100vh",
+          right: 0,
+          overflowY: "auto",
+        }}
+      >
+        {getPropertyPanel()}
+        {/* {editor && (
+          <>
+            <div>test29</div>
+            <EditorProvider editor={editor}>
+              <InspectorPanel />
+            </EditorProvider>
+          </>
+        )} */}
+      </div>
+      {/* </div> */}
+
+      {/* <PropertiesDrawer
         open={drawerOpen}
         onClose={() => setDrawerOpen(false)}
         data={selectedData}
         mask={false}
-      />
+      /> */}
     </div>
   );
 }

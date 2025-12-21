@@ -1,6 +1,5 @@
 import { Button, Table } from "antd";
-import { useMemo, useState } from "react";
-import { PropertiesDrawer } from "../components/PropertiesDrawer";
+import { useMemo } from "react";
 import {
   BaseBoxShapeUtil,
   createShapeId,
@@ -32,6 +31,8 @@ interface ZoneTableData {
   equipments: any[];
   attributes: any[];
 }
+
+let globalSetSelectedData: ((data: any) => void) | null = null;
 
 export type ZoneTableShape = TLBaseShape<
   "ZoneTableShape",
@@ -65,12 +66,6 @@ export class ZoneTableShapeUtil extends BaseBoxShapeUtil<ZoneTableShape> {
     const isEditing = this.editor.getEditingShapeId() === shape.id;
     const isReady = useDelaySvgExport();
 
-    const [drawerOpen, setDrawerOpen] = useState(false);
-    const [selectedRecord, setSelectedRecord] = useState<ZoneTableData | null>(
-      null
-    );
-    const [selectedCell, setSelectedCell] = useState<any | null>(null);
-
     const columns = useMemo(
       () => [
         {
@@ -80,9 +75,8 @@ export class ZoneTableShapeUtil extends BaseBoxShapeUtil<ZoneTableShape> {
           render: (obj: any) => (
             <Button
               onClick={(e) => {
-                setSelectedRecord(obj);
-                setSelectedCell(obj);
-                setDrawerOpen(true);
+                // console.log("selected", obj);
+                globalSetSelectedData?.(obj);
                 e.stopPropagation();
               }}
             >
@@ -100,8 +94,8 @@ export class ZoneTableShapeUtil extends BaseBoxShapeUtil<ZoneTableShape> {
                 <Button
                   key={i}
                   onClick={(e) => {
-                    setSelectedCell(obj);
-                    setDrawerOpen(true);
+                    // console.log("equipments", obj);
+                    globalSetSelectedData?.(obj);
                     e.stopPropagation();
                   }}
                 >
@@ -138,25 +132,24 @@ export class ZoneTableShapeUtil extends BaseBoxShapeUtil<ZoneTableShape> {
         }}
         // [b] This is where we stop event propagation
         onPointerDown={(e) => {
+          console.log("pointerDown", e);
           e.stopPropagation();
         }}
+        // onPointerUp={(e) => {
+        //   console.log("pointerUp", e);
+        //   e.stopPropagation();
+        // }}
         onClick={(e) => {
-          setDrawerOpen(false);
-          e.stopPropagation();
+          console.log("onClick", e);
+          globalSetSelectedData?.(null);
+          // e.stopPropagation();
         }}
+        // onTouchEnd={(e) => {
+        //   console.log("onTouchEnd", e);
+        //   e.stopPropagation();
+        // }}
       >
         {table}
-        <div
-          onPointerDown={(e) => e.stopPropagation()}
-          onClick={(e) => e.stopPropagation()}
-        >
-          <PropertiesDrawer
-            open={drawerOpen}
-            onClose={() => setDrawerOpen(false)}
-            data={selectedCell}
-            mask={false}
-          />
-        </div>
       </div>
     );
   }
@@ -165,7 +158,12 @@ export class ZoneTableShapeUtil extends BaseBoxShapeUtil<ZoneTableShape> {
   }
 }
 
-export function LoadZoneTablePage(editor: Editor, sys: any) {
+export function LoadZoneTablePage(
+  editor: Editor,
+  sys: any,
+  setSelectedData?: ((data: any) => void) | null
+) {
+  if (setSelectedData) globalSetSelectedData = setSelectedData;
   const pageId = PageRecordType.createId("ZoneTable");
   // check pageId exists
   const page = editor.getPage(pageId);

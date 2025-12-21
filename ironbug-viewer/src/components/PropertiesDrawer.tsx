@@ -2,23 +2,24 @@ import { Divider, Drawer, Form, Input } from "antd";
 import { GetHvacType } from "../shapes/LoopUtil";
 
 export interface PropertiesDrawerProps {
-  open: boolean;
-  onClose: () => void;
+  // open: boolean;
+  // onClose: () => void;
   data: any;
-  title?: string;
+  // title?: string;
   //   getContainer?: string | HTMLElement | (() => HTMLElement) | false;
-  mask?: boolean;
+  // mask?: boolean;
 }
 
 export const PropertiesDrawer = ({
-  open,
-  onClose,
+  // open,
+  // onClose,
   data,
-  title = "Properties",
-  //   getContainer = false,
-  mask = false,
-}: PropertiesDrawerProps) => {
+}: // title = "Properties",
+//   getContainer = false,
+// mask = false,
+PropertiesDrawerProps) => {
   const renderContent = () => {
+    console.log("renderContent", data);
     if (!data) return null;
 
     const objTitle = GetHvacType(data);
@@ -115,15 +116,16 @@ export const PropertiesDrawer = ({
   };
 
   return (
-    <Drawer
-      title={title}
-      placement="right"
-      closable={true}
-      onClose={onClose}
-      open={open}
-      mask={mask}
-    >
-      {renderContent()}
-    </Drawer>
+    <>{renderContent()}</>
+    // <Drawer
+    //   title={title}
+    //   placement="right"
+    //   closable={true}
+    //   onClose={onClose}
+    //   open={open}
+    //   mask={mask}
+    // >
+    //   {renderContent()}
+    // </Drawer>
   );
 };
