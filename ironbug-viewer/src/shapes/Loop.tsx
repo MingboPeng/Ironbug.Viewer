@@ -390,24 +390,27 @@ function DrawLoopBranches(
   baseY: number,
   isSupplySide: boolean
 ): any[] {
+  const branches: any[][] = branchesComponent.Branches;
+  const branchCount = branches.length;
   const space = SPACEX;
   const spaceY = SPACEY;
   const size = OBJSIZE;
   const x = baseX;
-  const y = baseY;
-  const supplyDir = isSupplySide ? -1 : 1;
+  let y = baseY;
+  if (isSupplySide) {
+    y = baseY - (branchCount - 1) * (size + spaceY);
+    if (branchCount === 1) y -= spaceY;
+  }
 
-  // console.log("DrawLoopBranches", x, y, branchesComponent);
-
-  const branches: any[][] = branchesComponent.Branches;
   const leftArrows: TLArrowShape[] = [];
   const rightArrows: TLArrowShape[] = [];
+
   for (let i = 0; i < branches.length; i++) {
     const branchItems = branches[i];
     const shapes = branchItems.flatMap((_) => {
       const itemShapes = [];
       const itemX = x;
-      const itemY = y + i * (spaceY + size) * supplyDir;
+      const itemY = y + i * (spaceY + size);
       const shape = GenShape(_, size, itemX, itemY);
       itemShapes.push(shape);
       // console.log("DrawLoopBranches Item", itemX, itemY);
