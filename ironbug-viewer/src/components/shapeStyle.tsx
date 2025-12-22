@@ -35,171 +35,6 @@ import {
 import { PropertiesDrawer } from "./PropertiesDrawer";
 import { EditorProvider } from "./PropertyPanel";
 
-function InspectorPanel() {
-  const editor = useEditor();
-
-  // Get the currently selected shapes, updates reactively
-  const selectedShapes = useValue(
-    "selected shapes",
-    () => editor.getSelectedShapes(),
-    [editor]
-  );
-
-  // Get shared styles when multiple shapes are selected
-  const sharedStyles = useValue(
-    "shared styles",
-    () => {
-      if (selectedShapes.length <= 1) return null;
-      return editor.getSharedStyles();
-    },
-    [editor, selectedShapes]
-  );
-
-  // Get bindings involving the selected shape (only for single selection)
-  const bindings = useValue(
-    "bindings",
-    () => {
-      if (selectedShapes.length !== 1) return [];
-      return editor.getBindingsInvolvingShape(selectedShapes[0].id);
-    },
-    [editor, selectedShapes]
-  );
-
-  const selectedShape = selectedShapes.length === 1 ? selectedShapes[0] : null;
-
-  if (selectedShapes.length === 0) {
-    return (
-      <div>
-        <h3>Inspector</h3>
-        <p>No shape selected</p>
-      </div>
-    );
-  }
-
-  // Single shape selected
-  return (
-    <div style={{ width: 300 }}>
-      <h3>Inspector</h3>
-      <div className="inspector-section">
-        {Object.entries(selectedShape!).map(([key, value]) => {
-          if (key === "props") return null; // Skip props, we'll show them separately
-          return <p>shape selected</p>;
-        })}
-      </div>
-
-      {/* {selectedShape!.props && Object.keys(selectedShape!.props).length > 0 && (
-				<div className="inspector-section">
-					<h4>Shape Props</h4>
-					{Object.entries(selectedShape!.props).map(([key, value]) => (
-						<PropertyRow key={key} name={key} value={value} path={`props.${key}`} />
-					))}
-				</div>
-			)} */}
-
-      {/* {bindings.length > 0 && (
-				<div className="inspector-section">
-					<h4>Bindings ({bindings.length})</h4>
-					{bindings.map((binding) => (
-						<BindingRow key={binding.id} binding={binding} selectedShapeId={selectedShape!.id} />
-					))}
-				</div>
-			)} */}
-    </div>
-  );
-}
-
-// function OsPropertyPanel() {
-//   const editor = useEditor();
-//   const styles = useRelevantStyles();
-//   const [selectedShape, setSelectedShape] = useState<IBShape | null>(null);
-
-//   let selectedId: TLShapeId = createShapeId("");
-
-//   useReactor(
-//     "change selection",
-//     () => {
-//       const shape = editor
-//         .getSelectedShapes()
-//         .find((shape) => shape.type === "ibshape") as IBShape;
-//       setSelectedShape(shape || null);
-//     },
-//     [editor]
-//   );
-
-//   if (!styles) return null;
-
-//   return (
-//     <div style={{ width: "300px" }}>
-//       {/* <DefaultStylePanel> */}
-//       {/* <DefaultStylePanelContent styles={styles} /> */}
-//       {selectedShape && (
-//         <div>
-//           <label>OpenStudio Type:</label>
-//           <input
-//             type="text"
-//             value={selectedShape.props.ostype}
-//             onChange={(e) => {
-//               editor.updateShape({
-//                 ...selectedShape,
-//                 props: { ...selectedShape.props, ostype: e.target.value },
-//               });
-//             }}
-//           />
-//         </div>
-//       )}
-//       {selectedShape?.props.osProperties &&
-//         Object.entries(selectedShape.props.osProperties).map(([key, value]) => (
-//           <div key={key}>
-//             <label>{key}:</label>
-//             <input
-//               type="text"
-//               value={value}
-//               onChange={(e) => {
-//                 editor.updateShape({
-//                   ...selectedShape,
-//                   props: {
-//                     ...selectedShape.props,
-//                     osProperties: {
-//                       ...selectedShape.props.osProperties,
-//                       [key]: e.target.value,
-//                     },
-//                   },
-//                 });
-//               }}
-//             />
-//           </div>
-//         ))}
-//       {/* </DefaultStylePanel> */}
-//     </div>
-//   );
-// }
-
-// function webview2Setup((json) => { } ) {
-// 	const wv2 = window.parent.chrome?.webview;
-// 	if (typeof wv2 === "undefined") {
-// 		loadSystem(editor, IB_Sys07)
-// 		return;
-
-// 	}
-// 	console.log("Is Viewer");
-
-// 	wv2.addEventListener("message", event => {
-// 		let data = "data" in event && event.data;
-// 		if (data === undefined)
-// 			data = IB_Sys07;
-// 		else {
-// 			const decodedData = atob(data as string);
-// 			const json = JSON.parse(decodedData);
-// 			console.log("Data received:", json);
-
-// 			loadSystem(editor, json);
-
-// 		}
-
-// 	})
-
-// }
-
 function loadSystem(
   editor: Editor,
   sys: any,
@@ -273,19 +108,6 @@ export default function ShapeWithTldrawStylesExample() {
     });
   }
 
-  // const handleUiEvent = useCallback<TLUiEventHandler>((name, data: any) => {
-  //   // console.log("UI Event:", name, data);
-  //   if (name === "click-shape") {
-  //     const shape = data.shape;
-  //     if (shape.type === "ibshape") {
-  //       setSelectedData(shape.props);
-  //       setDrawerOpen(true);
-  //     }
-  //   } else if (name === "click-canvas") {
-  //     setDrawerOpen(false);
-  //   }
-  // }, []);
-
   function OnMountLoading(editor: Editor) {
     const wv2 = window.parent.chrome?.webview;
     if (typeof wv2 === "undefined") {
@@ -294,17 +116,6 @@ export default function ShapeWithTldrawStylesExample() {
       setEditor(editor);
       wv2.postMessage("IBViewer loaded!");
     }
-
-    // editor.sideEffects.registerBeforeChangeHandler(
-    //   "shape",
-    //   (_prev, next, source) => {
-    //     console.log("shape change", next);
-    //     if (source !== "user") return next;
-    //     return {
-    //       ...next,
-    //     };
-    //   }
-    // );
   }
 
   const OsPropertyPanel = useCallback(() => {
@@ -411,16 +222,7 @@ export default function ShapeWithTldrawStylesExample() {
     return (
       <div style={{ margin: 10 }}>
         <h4>Properties</h4>
-        {/* <div>JSON.stringify(selectedData)</div> */}
-        {/* <div>{JSON.stringify(selectedData, null, 2)}</div> */}
-        {selectedData && (
-          <PropertiesDrawer
-            // open={drawerOpen}
-            // onClose={() => setDrawerOpen(false)}
-            data={selectedData}
-            // mask={false}
-          />
-        )}
+        {selectedData && <PropertiesDrawer data={selectedData} />}
       </div>
     );
   }, [selectedData]);
@@ -468,23 +270,7 @@ export default function ShapeWithTldrawStylesExample() {
         }}
       >
         {getPropertyPanel()}
-        {/* {editor && (
-          <>
-            <div>test29</div>
-            <EditorProvider editor={editor}>
-              <InspectorPanel />
-            </EditorProvider>
-          </>
-        )} */}
       </div>
-      {/* </div> */}
-
-      {/* <PropertiesDrawer
-        open={drawerOpen}
-        onClose={() => setDrawerOpen(false)}
-        data={selectedData}
-        mask={false}
-      /> */}
     </div>
   );
 }
