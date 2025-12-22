@@ -212,7 +212,7 @@ export function LoadZoneTablePage(
   editor.zoomToBounds({
     x: 0,
     y: 0,
-    w: 800 + 400,
+    w: 800,
     h: 600,
   });
 }

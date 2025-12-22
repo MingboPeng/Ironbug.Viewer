@@ -614,7 +614,7 @@ export function DrawLoop(editor: Editor, loop: any) {
   CheckCreatePage(editor, _currentLoopId, pageName);
 
   const loopBound = Box.From(spBound).union(dmBound).union(seperatorBound);
-  const zoomToBound = { ...loopBound, h: 460, w: loopBound.width + 400 };
+  const zoomToBound = { ...loopBound, h: 460 };
   editor.zoomToBounds(zoomToBound);
 
   //  Draw Supply side connections
