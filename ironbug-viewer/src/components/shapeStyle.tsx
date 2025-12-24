@@ -97,12 +97,8 @@ export default function ShapeWithTldrawStylesExample() {
     wv2.addEventListener("message", (event) => {
       let data = "data" in event && event.data;
       if (data !== undefined) {
-        const decodedData = atob(data as string);
-        const json = JSON.parse(decodedData);
-        // console.log("Data received:", json);
-        // setSystem(json);
         if (editor) {
-          loadSystem(editor, json, setSelectedData);
+          loadSystem(editor, data, setSelectedData);
         }
       }
     });

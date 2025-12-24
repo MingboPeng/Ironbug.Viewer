@@ -1,15 +1,14 @@
 ﻿using PollinationBrowserControl;
-using System.Windows.Documents;
-using System.Windows.Forms;
-using System.Windows.Input;
+using System;
+using System.Reflection;
 
 namespace IronbugViewer.GH
 {
     public partial class ViewerDialog
     {
         private static ViewerDialog _instance;
-        public event BrowserControl.CoreWebView2WebMessageReceivedEventHandler MessageReceived;
-
+        public event EventHandler<BrowserControl.WebMessageReceivedEventArgs> MessageJsonReceived;
+        //internal BrowserControl brControl;
         private object _parentUI;
 
 
@@ -21,17 +20,17 @@ namespace IronbugViewer.GH
             this.Title = "Ironbug Viewer (WIP)";
 
             this.brControl.InitEnv($"Ironbug.Viewer", url, webView2TempDir);
-            this.brControl.MessageReceived += (s, e) => MessageReceived?.Invoke(s, e);
-            this.brControl.MessageReceived += BrControl_MessageReceived;
+            this.brControl.MessageJsonReceived += (s, e) => MessageJsonReceived?.Invoke(s, e);
+            this.brControl.MessageJsonReceived += BrControl_MessageJsonReceived;
             this.brControl.WebView.CoreWebView2InitializationCompleted += WebView_CoreWebView2InitializationCompleted;
             this.Closing += ViewerDialog_Closing;
             _parentUI = parentUI;
         }
 
-        private void BrControl_MessageReceived(string message, System.Action<object> returnAction)
+        private void BrControl_MessageJsonReceived(object sender, BrowserControl.WebMessageReceivedEventArgs e)
         {
-            this.brControl.MessageReceived -= BrControl_MessageReceived;
-            if (message == "IBViewer loaded!")
+            this.brControl.MessageJsonReceived -= BrControl_MessageJsonReceived;
+            if (e.MessageJson.Contains("IBViewer loaded!"))
             {
                 // ready to push data and render system loops
                 SchedulePost(_data);
@@ -62,6 +61,7 @@ namespace IronbugViewer.GH
         }
 
         private string _data;
+        private static MethodInfo _postMessageMethod;
         public void SchedulePost(string message)
         {
             if (string.IsNullOrEmpty(message))
@@ -75,7 +75,13 @@ namespace IronbugViewer.GH
             }
             else
             {
-                this.brControl.PostMessage(message);
+                // get an internal PostMessageJson function to post message
+                _postMessageMethod = _postMessageMethod ?? typeof(BrowserControl).GetMethod(
+                    "PostMessageJson",
+                    BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public
+                );
+
+                _postMessageMethod?.Invoke(this.brControl, new object[] { message, false });
             }
         }
 
@@ -103,16 +109,6 @@ namespace IronbugViewer.GH
             this.brControl.WebView.CoreWebView2.Settings.AreDevToolsEnabled = true;
         }
 
-        private void WebView_NavigationCompleted(object sender, Microsoft.Web.WebView2.Core.CoreWebView2NavigationCompletedEventArgs e)
-        {
-
-            if (!string.IsNullOrEmpty(_data))
-            {
-
-                this.brControl.PostMessage(_data);
-            }
-            //throw new System.NotImplementedException();
-        }
 
     }
 }

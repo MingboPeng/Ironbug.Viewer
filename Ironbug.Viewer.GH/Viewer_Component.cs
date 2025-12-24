@@ -47,7 +47,7 @@ namespace IronbugViewer.GH
         {
             //var tree = new GH_Structure<IGH_Goo>();
             var inputSys = new List<object>();
-            if(!DA.GetDataList(0, inputSys)) return;
+            if (!DA.GetDataList(0, inputSys)) return;
 
             // get system json
             var sysJson = string.Empty;
@@ -61,7 +61,7 @@ namespace IronbugViewer.GH
                     var md = objType.GetMethod("ToJson");
                     if (md == null)
                         throw new ArgumentException("Invalid IB_HVACSystem");
-                    var rdata = md.Invoke(obj, new object[] {false});
+                    var rdata = md.Invoke(obj, new object[] { false });
                     sysJson = rdata?.ToString();
                 }
             }
@@ -80,9 +80,7 @@ namespace IronbugViewer.GH
             if (_viewer == null || !_viewer.IsLoaded)
             {
                 _viewer = ViewerDialog.Init(url);
-                _viewer.MessageReceived += _viewer_MessageReceived;
             }
-            
             // show or active the existing dialog
             _viewer.ShowWindow();
 
@@ -90,11 +88,11 @@ namespace IronbugViewer.GH
 
         }
 
-        private void _viewer_MessageReceived(string message, Action<object> returnAction)
-        {
-            //Console.WriteLine(message);
+        //private void _viewer_MessageReceived(string message, Action<object> returnAction)
+        //{
+        //    //Console.WriteLine(message);
 
-        }
+        //}
 
         /// <summary>
         /// Provides an Icon for every component that will be visible in the User Interface.
