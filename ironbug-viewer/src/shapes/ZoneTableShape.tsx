@@ -185,15 +185,16 @@ export function LoadZoneTablePage(
   editor.setCurrentPage(pageId);
 
   // Get all the airloop branches
-  const airloopBranches = sys.AirLoops.flatMap((loop: any) =>
-    loop.DemandComponents.flatMap((comp: any) => comp.Branches)
-  ) as any[];
-  const rooms = airloopBranches.flatMap((_) => _).filter((_) => IsZone(_));
+  const airloopBranches =
+    (sys.AirLoops?.flatMap((loop: any) =>
+      loop.DemandComponents?.flatMap((comp: any) => comp.Branches)
+    ) as any[]) ?? [];
+  const rooms = airloopBranches?.flatMap((_) => _).filter((_) => IsZone(_));
 
   // Get all the zones without airloops
   const noLoopZones = (
-    sys.AirLoops.flatMap((loop: any) => loop.ThermalZones) as any[]
-  ).filter((_) => IsZone(_));
+    (sys.AirLoops?.flatMap((loop: any) => loop.ThermalZones) as any[]) ?? []
+  )?.filter((_) => IsZone(_));
 
   const allZones = [...noLoopZones, ...rooms];
   const zoneGridShapeId = createShapeId("ZoneTableShape");
